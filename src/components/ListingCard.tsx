@@ -1,9 +1,10 @@
-import { ExternalLink, Heart, Flame, Snowflake, Zap, Clock, Users } from "lucide-react";
+import { ExternalLink, Heart, Zap, Clock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DealScoreBadge } from "./DealScoreBadge";
 import { RecommendationPill } from "./RecommendationPill";
+import { HeatBadge } from "./HeatBadge";
 import { formatTimeLeft } from "@/lib/recommendation";
-import { ListingWithAnalysis } from "@/hooks/useListings";
+import { ListingWithAnalysis, usePlayerHeatMap } from "@/hooks/useListings";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +14,12 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
   const watched = isWatched(listing.id);
   const total = (listing.current_price ?? 0) + (listing.shipping_cost ?? 0);
   const timeLeft = formatTimeLeft(listing.end_time);
+  const heatMap = usePlayerHeatMap();
+  const primaryPlayer = a?.detected_players?.[0];
+  const playerHeat = primaryPlayer ? heatMap.get(primaryPlayer) : undefined;
+  const heatLabel = a?.heat_label ?? playerHeat?.label ?? null;
+  const heatScore = a?.heat_score ?? playerHeat?.heat_score ?? null;
+  const heatTrend = playerHeat?.trend ?? null;
 
   return (
     <article className="rounded-2xl border border-border bg-card p-3 shadow-sm">
@@ -40,26 +47,7 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
           {a && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <RecommendationPill recommendation={a.recommendation} />
-              {a.heat_label === "HOT" && (
-                <span className="inline-flex items-center gap-0.5 rounded-full border border-rec-red/60 bg-rec-red/10 px-2 py-0.5 text-[10px] font-bold uppercase text-rec-red">
-                  <Flame className="h-3 w-3" /> Hot
-                </span>
-              )}
-              {a.heat_label === "WARM" && (
-                <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-500/60 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-600">
-                  Warm
-                </span>
-              )}
-              {a.heat_label === "COOL" && (
-                <span className="inline-flex items-center gap-0.5 rounded-full border border-sky-500/60 bg-sky-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-sky-600">
-                  Cool
-                </span>
-              )}
-              {a.heat_label === "COLD" && (
-                <span className="inline-flex items-center gap-0.5 rounded-full border border-slate-400/60 bg-slate-400/10 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-500">
-                  <Snowflake className="h-3 w-3" /> Cold
-                </span>
-              )}
+              <HeatBadge label={heatLabel} trend={heatTrend} score={heatScore} />
               {a.urgency === "HIGH" && (
                 <span className="inline-flex items-center gap-0.5 rounded-full border border-rec-red/60 bg-rec-red/10 px-2 py-0.5 text-[10px] font-bold uppercase text-rec-red">
                   <Clock className="h-3 w-3" /> Slut snart

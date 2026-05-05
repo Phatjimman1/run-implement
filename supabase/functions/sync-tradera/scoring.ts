@@ -49,6 +49,8 @@ export const BRAND_TIERS: Record<string, "S" | "A" | "B" | "C"> = {
   "topps flagship": "C",
   "bowman university": "C",
   "topps now": "C",
+  "hoops": "C",
+  "bowman chrome": "A",
 };
 
 export const RED_FLAG_TERMS = [

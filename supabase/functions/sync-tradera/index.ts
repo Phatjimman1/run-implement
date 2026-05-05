@@ -11,8 +11,11 @@ const FIRECRAWL_URL = "https://api.firecrawl.dev/v2/scrape";
 
 interface SearchTerm { id: string; query: string; }
 
+// Tradera-kategori 1001059 = Basketkort (NBA m.fl.)
+const BASKETBALL_CARDS_CATEGORY = 1001059;
+
 async function scrapeTradera(query: string, apiKey: string): Promise<string | null> {
-  const url = `https://www.tradera.com/search?q=${encodeURIComponent(query)}&categoryId=20`;
+  const url = `https://www.tradera.com/search?q=${encodeURIComponent(query)}&categoryId=${BASKETBALL_CARDS_CATEGORY}`;
   const res = await fetch(FIRECRAWL_URL, {
     method: "POST",
     headers: {

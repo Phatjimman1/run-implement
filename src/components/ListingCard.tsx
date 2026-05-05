@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { DealScoreBadge } from "./DealScoreBadge";
 import { RecommendationPill } from "./RecommendationPill";
 import { HeatBadge } from "./HeatBadge";
+import { ConditionCheck } from "./ConditionCheck";
 import { formatTimeLeft } from "@/lib/recommendation";
 import { ListingWithAnalysis, usePlayerHeatMap } from "@/hooks/useListings";
 import { useWatchlist } from "@/hooks/useWatchlist";
@@ -110,6 +111,7 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
               <div className="text-base font-bold tabular-nums">{a.max_bid} kr</div>
             </div>
             <div className="flex gap-2">
+              <ConditionCheck listingId={listing.id} imageUrl={listing.image_urls[0]} title={listing.title} />
               <Button
                 size="sm"
                 variant="outline"

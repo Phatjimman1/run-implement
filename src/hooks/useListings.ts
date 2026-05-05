@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -77,6 +78,15 @@ export function usePlayerHeat() {
     },
     staleTime: 60_000,
   });
+}
+
+export function usePlayerHeatMap() {
+  const { data } = usePlayerHeat();
+  return useMemo(() => {
+    const m = new Map<string, PlayerHeat>();
+    for (const h of data ?? []) m.set(h.player, h);
+    return m;
+  }, [data]);
 }
 
 export function useListings() {

@@ -1,6 +1,7 @@
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLastSync } from "@/hooks/useListings";
+import { AlertsBell } from "./AlertsBell";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -39,10 +40,13 @@ export function TopBar() {
           </h1>
           <p className="text-[11px] text-muted-foreground">Senast uppdaterad: {lastTxt}</p>
         </div>
-        <Button size="sm" variant="outline" onClick={refresh} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          <span className="ml-1.5 hidden sm:inline">Synka</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <AlertsBell />
+          <Button size="sm" variant="outline" onClick={refresh} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            <span className="ml-1.5 hidden sm:inline">Synka</span>
+          </Button>
+        </div>
       </div>
     </header>
   );

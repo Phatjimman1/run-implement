@@ -13,7 +13,7 @@ export interface ParsedListing {
   sellerName: string | null;
 }
 
-const ITEM_LINK_RE = /href="(\/(?:item|auction|salda-varor)\/(\d{6,})[^"]*)"[^>]*>([\s\S]{0,400}?)<\/a>/gi;
+const ITEM_BLOCK_RE = /<div id="item-card-(\d+)"[\s\S]*?(?=<div id="item-card-\d+"|<div id="end-of-results"|<\/main>|$)/g;
 
 function decode(html: string): string {
   return html
@@ -41,53 +41,104 @@ function extractPrice(text: string): number | null {
  */
 export function parseTraderaHtml(html: string): ParsedListing[] {
   const out: ParsedListing[] = [];
-
-  // Try Next.js JSON blob first
-  const nextMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
-  if (nextMatch) {
-    try {
-      const data = JSON.parse(nextMatch[1]);
-      const items = findItemsInJson(data);
-      if (items.length > 0) return items;
-    } catch (_) {
-      // fall through to HTML parser
-    }
-  }
-
-  // Legacy: scan for item links
   const seen = new Set<string>();
+
+  // Find every item-card block and parse it
   let m: RegExpExecArray | null;
-  while ((m = ITEM_LINK_RE.exec(html)) !== null) {
-    const path = m[1];
-    const id = m[2];
+  ITEM_BLOCK_RE.lastIndex = 0;
+  while ((m = ITEM_BLOCK_RE.exec(html)) !== null) {
+    const id = m[1];
     if (seen.has(id)) continue;
     seen.add(id);
-    const inner = m[3];
-    const title = stripTags(inner);
-    if (!title || title.length < 5) continue;
+    const block = m[0];
 
-    // try to locate a price near this link (next ~600 chars)
-    const start = m.index + m[0].length;
-    const ctx = html.slice(start, start + 1500);
-    const price = extractPrice(ctx);
+    // URL + title (title-link is the second <a> with href to /item/.../id/...)
+    const linkRe = new RegExp(`href="(https?://www\\.tradera\\.com/item/[^"]*${id}[^"]*)"[^>]*>([^<]{4,})</a>`);
+    const linkMatch = block.match(linkRe);
+    let url = "";
+    let title = "";
+    if (linkMatch) {
+      url = decode(linkMatch[1]);
+      title = stripTags(linkMatch[2]);
+    } else {
+      const anyHref = block.match(new RegExp(`href="(https?://www\\.tradera\\.com/item/[^"]*${id}[^"]*)"`));
+      if (anyHref) url = decode(anyHref[1]);
+      const titleAttr = block.match(/title="([^"]+)"/);
+      if (titleAttr) title = decode(titleAttr[1]);
+    }
+    if (!title || !url) continue;
 
-    // image
-    const imgMatch = inner.match(/src="([^"]+)"/) || ctx.match(/<img[^>]+src="([^"]+)"/);
-    const image = imgMatch ? imgMatch[1] : null;
+    // Price: look for data-testid="price" first
+    let price: number | null = null;
+    const priceMatch = block.match(/data-testid="price"[^>]*>([\s\S]{0,80}?)</);
+    if (priceMatch) price = extractPrice(stripTags(priceMatch[1]));
+    if (price === null) price = extractPrice(block);
+
+    // Image
+    const imgMatch = block.match(/<img[^>]+src="([^"]+)"/);
+    const image = imgMatch ? decode(imgMatch[1]) : null;
+
+    // End time text (Swedish: "8 maj 15:09" or "1 tim" etc.)
+    const endMatch = block.match(/aria-hidden="false"[^>]*>([^<]+)<\/span>/);
+    const endTime = endMatch ? parseSwedishEndTime(endMatch[1].trim()) : null;
+
+    // Bid count
+    let bidCount: number | null = null;
+    const bidM = block.match(/(\d+)\s*bud\b/i);
+    if (bidM) bidCount = parseInt(bidM[1], 10);
 
     out.push({
       traderaItemId: id,
       title,
-      url: `https://www.tradera.com${path}`,
+      url,
       imageUrls: image ? [image] : [],
       currentPrice: price,
       shippingCost: null,
-      endTime: null,
-      bidCount: null,
+      endTime,
+      bidCount,
       sellerName: null,
     });
   }
   return out;
+}
+
+function parseSwedishEndTime(text: string): Date | null {
+  // Examples: "8 maj 15:09", "i dag 18:30", "i morgon 09:00", "1 tim", "32 min"
+  const months: Record<string, number> = {
+    jan: 0, feb: 1, mar: 2, apr: 3, maj: 4, jun: 5,
+    jul: 6, aug: 7, sep: 8, okt: 9, nov: 10, dec: 11,
+  };
+  const t = text.toLowerCase();
+
+  const minM = t.match(/^(\d+)\s*min/);
+  if (minM) return new Date(Date.now() + parseInt(minM[1], 10) * 60_000);
+  const timM = t.match(/^(\d+)\s*tim/);
+  if (timM) return new Date(Date.now() + parseInt(timM[1], 10) * 3600_000);
+
+  const today = new Date();
+  const todayM = t.match(/^i\s*dag\s+(\d{1,2}):(\d{2})/);
+  if (todayM) {
+    const d = new Date(today);
+    d.setHours(parseInt(todayM[1], 10), parseInt(todayM[2], 10), 0, 0);
+    return d;
+  }
+  const tmwM = t.match(/^i\s*morgon\s+(\d{1,2}):(\d{2})/);
+  if (tmwM) {
+    const d = new Date(today);
+    d.setDate(d.getDate() + 1);
+    d.setHours(parseInt(tmwM[1], 10), parseInt(tmwM[2], 10), 0, 0);
+    return d;
+  }
+  const dateM = t.match(/^(\d{1,2})\s+([a-zåäö]{3})\s+(\d{1,2}):(\d{2})/);
+  if (dateM) {
+    const day = parseInt(dateM[1], 10);
+    const mon = months[dateM[2]];
+    if (mon === undefined) return null;
+    const d = new Date(today.getFullYear(), mon, day, parseInt(dateM[3], 10), parseInt(dateM[4], 10));
+    if (d.getTime() < Date.now() - 24 * 3600_000) d.setFullYear(d.getFullYear() + 1);
+    return d;
+  }
+  return null;
 }
 
 // recursively scan the Next.js data tree for item objects

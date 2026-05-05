@@ -1,0 +1,85 @@
+import { ExternalLink, Heart } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { DealScoreBadge } from "./DealScoreBadge";
+import { RecommendationPill } from "./RecommendationPill";
+import { formatTimeLeft } from "@/lib/recommendation";
+import { ListingWithAnalysis } from "@/hooks/useListings";
+import { useWatchlist } from "@/hooks/useWatchlist";
+import { cn } from "@/lib/utils";
+
+export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
+  const a = listing.analyses;
+  const { isWatched, toggle } = useWatchlist();
+  const watched = isWatched(listing.id);
+  const total = (listing.current_price ?? 0) + (listing.shipping_cost ?? 0);
+  const timeLeft = formatTimeLeft(listing.end_time);
+
+  return (
+    <article className="rounded-2xl border border-border bg-card p-3 shadow-sm">
+      <div className="flex gap-3">
+        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-muted sm:h-28 sm:w-28">
+          {listing.image_urls[0] ? (
+            <img src={listing.image_urls[0]} alt={listing.title} loading="lazy" className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">Ingen bild</div>
+          )}
+          {a && (
+            <div className="absolute -bottom-2 -right-2">
+              <DealScoreBadge score={a.deal_score} size="sm" />
+            </div>
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <h3 className="line-clamp-2 text-sm font-semibold leading-tight">{listing.title}</h3>
+          <div className="mt-1 flex items-baseline gap-1.5 text-sm">
+            <span className="font-bold text-foreground">{listing.current_price ?? "?"} kr</span>
+            {listing.shipping_cost != null && <span className="text-xs text-muted-foreground">+ {listing.shipping_cost} frakt</span>}
+            {timeLeft && <span className="ml-auto text-xs text-muted-foreground">{timeLeft}</span>}
+          </div>
+          {a && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <RecommendationPill recommendation={a.recommendation} />
+              {a.tags.slice(0, 4).map((t) => (
+                <span key={t} className={cn(
+                  "rounded-full border border-border bg-secondary px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+                  ["Red Flag", "Reprint Risk", "Damaged", "Overpriced"].includes(t) && "border-rec-red text-rec-red",
+                  t === "Swedish Edge" && "border-rec-bid text-rec-bid",
+                )}>{t}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {a && (
+        <>
+          {a.reasoning && (
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{a.reasoning}</p>
+          )}
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <div className="text-xs">
+              <div className="text-muted-foreground">Maxbud</div>
+              <div className="text-base font-bold tabular-nums">{a.max_bid} kr</div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => toggle(listing.id)}
+                aria-label="Bevaka"
+              >
+                <Heart className={cn("h-4 w-4", watched && "fill-rec-red text-rec-red")} />
+              </Button>
+              <Button asChild size="sm">
+                <a href={listing.url} target="_blank" rel="noreferrer">
+                  Tradera <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                </a>
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
+    </article>
+  );
+}

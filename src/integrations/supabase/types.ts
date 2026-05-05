@@ -14,7 +14,197 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      analyses: {
+        Row: {
+          card_count: number | null
+          deal_score: number
+          detected_brands: string[]
+          detected_card_types: string[]
+          detected_players: string[]
+          detected_sets: string[]
+          estimated_market_value: number | null
+          flip_score: number
+          hold_score: number
+          id: string
+          is_auto: boolean
+          is_certified_auto: boolean
+          is_college: boolean
+          is_damaged: boolean
+          is_insert: boolean
+          is_numbered: boolean
+          is_refractor: boolean
+          is_reprint_risk: boolean
+          is_rookie: boolean
+          is_xfractor: boolean
+          listing_id: string
+          max_bid: number
+          numbered_print_run: number | null
+          price_per_card: number | null
+          reasoning: string | null
+          recommendation: string
+          risk_score: number
+          tags: string[]
+          updated_at: string
+          value_score: number
+        }
+        Insert: {
+          card_count?: number | null
+          deal_score?: number
+          detected_brands?: string[]
+          detected_card_types?: string[]
+          detected_players?: string[]
+          detected_sets?: string[]
+          estimated_market_value?: number | null
+          flip_score?: number
+          hold_score?: number
+          id?: string
+          is_auto?: boolean
+          is_certified_auto?: boolean
+          is_college?: boolean
+          is_damaged?: boolean
+          is_insert?: boolean
+          is_numbered?: boolean
+          is_refractor?: boolean
+          is_reprint_risk?: boolean
+          is_rookie?: boolean
+          is_xfractor?: boolean
+          listing_id: string
+          max_bid?: number
+          numbered_print_run?: number | null
+          price_per_card?: number | null
+          reasoning?: string | null
+          recommendation?: string
+          risk_score?: number
+          tags?: string[]
+          updated_at?: string
+          value_score?: number
+        }
+        Update: {
+          card_count?: number | null
+          deal_score?: number
+          detected_brands?: string[]
+          detected_card_types?: string[]
+          detected_players?: string[]
+          detected_sets?: string[]
+          estimated_market_value?: number | null
+          flip_score?: number
+          hold_score?: number
+          id?: string
+          is_auto?: boolean
+          is_certified_auto?: boolean
+          is_college?: boolean
+          is_damaged?: boolean
+          is_insert?: boolean
+          is_numbered?: boolean
+          is_refractor?: boolean
+          is_reprint_risk?: boolean
+          is_rookie?: boolean
+          is_xfractor?: boolean
+          listing_id?: string
+          max_bid?: number
+          numbered_print_run?: number | null
+          price_per_card?: number | null
+          reasoning?: string | null
+          recommendation?: string
+          risk_score?: number
+          tags?: string[]
+          updated_at?: string
+          value_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analyses_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: true
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listings: {
+        Row: {
+          bid_count: number | null
+          buy_now_price: number | null
+          current_price: number | null
+          end_time: string | null
+          first_seen_at: string
+          id: string
+          image_urls: string[]
+          last_seen_at: string
+          raw_json: Json | null
+          seller_name: string | null
+          seller_rating: number | null
+          shipping_cost: number | null
+          status: string
+          title: string
+          tradera_item_id: string
+          url: string
+        }
+        Insert: {
+          bid_count?: number | null
+          buy_now_price?: number | null
+          current_price?: number | null
+          end_time?: string | null
+          first_seen_at?: string
+          id?: string
+          image_urls?: string[]
+          last_seen_at?: string
+          raw_json?: Json | null
+          seller_name?: string | null
+          seller_rating?: number | null
+          shipping_cost?: number | null
+          status?: string
+          title: string
+          tradera_item_id: string
+          url: string
+        }
+        Update: {
+          bid_count?: number | null
+          buy_now_price?: number | null
+          current_price?: number | null
+          end_time?: string | null
+          first_seen_at?: string
+          id?: string
+          image_urls?: string[]
+          last_seen_at?: string
+          raw_json?: Json | null
+          seller_name?: string | null
+          seller_rating?: number | null
+          shipping_cost?: number | null
+          status?: string
+          title?: string
+          tradera_item_id?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      search_terms: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          last_run_at: string | null
+          priority: number
+          query: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          last_run_at?: string | null
+          priority?: number
+          query: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          last_run_at?: string | null
+          priority?: number
+          query?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

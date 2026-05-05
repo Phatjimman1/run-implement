@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,6 +52,42 @@ export type ListingWithAnalysis = {
     heat_label: "HOT" | "WARM" | "COOL" | "COLD" | null;
   } | null;
 };
+
+export type PlayerHeat = {
+  player: string;
+  heat_score: number;
+  trend: "UP" | "STABLE" | "DOWN";
+  label: "HOT" | "WARM" | "COOL" | "COLD";
+  sample_size: number;
+  recent_avg_price: number | null;
+  prior_avg_price: number | null;
+  active_listing_count: number;
+};
+
+export function usePlayerHeat() {
+  return useQuery({
+    queryKey: ["player-heat"],
+    queryFn: async (): Promise<PlayerHeat[]> => {
+      const { data, error } = await supabase
+        .from("player_heat")
+        .select("player, heat_score, trend, label, sample_size, recent_avg_price, prior_avg_price, active_listing_count")
+        .order("heat_score", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return (data ?? []) as PlayerHeat[];
+    },
+    staleTime: 60_000,
+  });
+}
+
+export function usePlayerHeatMap() {
+  const { data } = usePlayerHeat();
+  return useMemo(() => {
+    const m = new Map<string, PlayerHeat>();
+    for (const h of data ?? []) m.set(h.player, h);
+    return m;
+  }, [data]);
+}
 
 export function useListings() {
   const qc = useQueryClient();

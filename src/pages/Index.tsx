@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { TopBar } from "@/components/TopBar";
 import { BottomNav } from "@/components/BottomNav";
 import { Section } from "@/components/Section";
+import { PlayerHeatStrip } from "@/components/PlayerHeatStrip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useListings, ListingWithAnalysis } from "@/hooks/useListings";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,7 @@ const Index = () => {
           <EmptyState />
         ) : (
           <>
+            <PlayerHeatStrip />
             <Section title="🎯 SNIPER DEALS" subtitle="Hög sannolikhet, låg konkurrens, slutar snart" listings={sections.sniper} />
             <Section title="🔥 HOT players" subtitle="Spelare som trendar uppåt" listings={sections.hotPlayers} />
             <Section title="🔥 Top Deals nu" subtitle="Högst Deal Score just nu" listings={sections.top} />

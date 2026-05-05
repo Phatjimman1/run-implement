@@ -11,6 +11,7 @@ import {
   recomputePlayerHeat,
   ingestEndedAsComp,
 } from "./comps.ts";
+import { evaluateHardBlock } from "./blocking.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -153,6 +154,8 @@ Deno.serve(async (req) => {
         if (heat?.label === "HOT") extraTags.push("Hot Player");
         if (heat?.label === "COLD") extraTags.push("Cold Player");
 
+        const block = evaluateHardBlock(item.title);
+
         const { error: aErr } = await supabase
           .from("analyses")
           .upsert({
@@ -196,10 +199,44 @@ Deno.serve(async (req) => {
             competition: sniper.competition,
             heat_score: heat?.score ?? null,
             heat_label: heat?.label ?? null,
+            is_blocked: block.blocked,
+            block_reason: block.reason,
             updated_at: new Date().toISOString(),
           }, { onConflict: "listing_id" });
         if (aErr) errors.push(`upsert analysis: ${aErr.message}`);
         else analysesUpserted++;
+
+        // ── ALERTS ────────────────────────────────────────────────────────
+        if (!block.blocked && item.endTime) {
+          const minsLeft = (item.endTime.getTime() - Date.now()) / 60000;
+          const totalCostNow = totalCost;
+          if (
+            adjustedDealScore >= 80 &&
+            totalCostNow > 0 &&
+            totalCostNow < score.maxBid &&
+            minsLeft > 0 && minsLeft < 30
+          ) {
+            await supabase.from("alerts").upsert({
+              listing_id: listing.id,
+              type: "HIGH_VALUE",
+              triggered_at: new Date().toISOString(),
+              read: false,
+              message: `🔥 Sniper deal: ${item.title.slice(0, 60)} — ${Math.round(totalCostNow)} kr, slutar om ${Math.round(minsLeft)} min`,
+              deal_score: adjustedDealScore,
+              sniper_score: sniper.sniperScore,
+            }, { onConflict: "listing_id,type", ignoreDuplicates: true });
+          } else if (sniper.sniperScore >= 80 && minsLeft > 0 && minsLeft < 15) {
+            await supabase.from("alerts").upsert({
+              listing_id: listing.id,
+              type: "ENDING_SOON",
+              triggered_at: new Date().toISOString(),
+              read: false,
+              message: `⏰ Slutar om ${Math.round(minsLeft)} min: ${item.title.slice(0, 60)}`,
+              deal_score: adjustedDealScore,
+              sniper_score: sniper.sniperScore,
+            }, { onConflict: "listing_id,type", ignoreDuplicates: true });
+          }
+        }
       }
 
       if (term.id !== "manual") {

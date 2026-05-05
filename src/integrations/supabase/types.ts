@@ -196,6 +196,77 @@ export type Database = {
           },
         ]
       }
+      condition_analyses: {
+        Row: {
+          centering: Json
+          condition_advice: string
+          condition_label: string
+          condition_score: number
+          confidence: string
+          corners: Json
+          created_at: string
+          edges: Json
+          explanation: string | null
+          id: string
+          image_quality: Json
+          image_url: string | null
+          listing_id: string
+          overlay_image_url: string | null
+          psa_potential: string
+          surface: Json
+          updated_at: string
+          warnings: Json
+        }
+        Insert: {
+          centering?: Json
+          condition_advice?: string
+          condition_label?: string
+          condition_score?: number
+          confidence?: string
+          corners?: Json
+          created_at?: string
+          edges?: Json
+          explanation?: string | null
+          id?: string
+          image_quality?: Json
+          image_url?: string | null
+          listing_id: string
+          overlay_image_url?: string | null
+          psa_potential?: string
+          surface?: Json
+          updated_at?: string
+          warnings?: Json
+        }
+        Update: {
+          centering?: Json
+          condition_advice?: string
+          condition_label?: string
+          condition_score?: number
+          confidence?: string
+          corners?: Json
+          created_at?: string
+          edges?: Json
+          explanation?: string | null
+          id?: string
+          image_quality?: Json
+          image_url?: string | null
+          listing_id?: string
+          overlay_image_url?: string | null
+          psa_potential?: string
+          surface?: Json
+          updated_at?: string
+          warnings?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "condition_analyses_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listings: {
         Row: {
           bid_count: number | null

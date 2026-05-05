@@ -1,6 +1,16 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { parseTraderaHtml } from "./parser.ts";
 import { scoreListing } from "./scoring.ts";
+import {
+  buildSignature,
+  lookupComps,
+  applyMarketAnchor,
+  computeSniper,
+  lookupHeat,
+  heatScoringDelta,
+  recomputePlayerHeat,
+  ingestEndedAsComp,
+} from "./comps.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -119,6 +129,30 @@ Deno.serve(async (req) => {
           bidCount: item.bidCount,
         });
 
+        // Market Anchor (comps)
+        const signature = buildSignature(score);
+        const comp = await lookupComps(supabase, score);
+        const totalCost = (item.currentPrice ?? 0) + (item.shippingCost ?? 0);
+        const market = applyMarketAnchor(totalCost, comp);
+
+        // Player Heat
+        const primaryPlayer = score.players[0];
+        const heat = await lookupHeat(supabase, primaryPlayer);
+        const heatDelta = heatScoringDelta(heat?.label ?? null);
+
+        // Adjusted deal score with market + heat signals
+        const adjustedDealScore = Math.max(0, Math.min(100, score.dealScore + market.marketBonus + heatDelta));
+        const sniper = computeSniper({
+          dealScore: adjustedDealScore,
+          totalCost,
+          endTime: item.endTime,
+          bidCount: item.bidCount,
+        });
+
+        const extraTags = [...market.marketTags];
+        if (heat?.label === "HOT") extraTags.push("Hot Player");
+        if (heat?.label === "COLD") extraTags.push("Cold Player");
+
         const { error: aErr } = await supabase
           .from("analyses")
           .upsert({
@@ -144,12 +178,24 @@ Deno.serve(async (req) => {
             flip_score: score.flipScore,
             hold_score: score.holdScore,
             risk_score: score.riskScore,
-            deal_score: score.dealScore,
+            deal_score: adjustedDealScore,
             recommendation: score.recommendation,
             max_bid: score.maxBid,
-            estimated_market_value: score.estimatedMarketValue,
+            estimated_market_value: comp.median > 0 ? comp.median : score.estimatedMarketValue,
             reasoning: score.reasoning,
-            tags: score.tags,
+            tags: [...score.tags, ...extraTags],
+            card_signature: signature,
+            comp_median: comp.median || null,
+            comp_low: comp.low || null,
+            comp_high: comp.high || null,
+            comp_count: comp.count,
+            comp_confidence: comp.confidence,
+            discount_percent: market.discountPercent,
+            sniper_score: sniper.sniperScore,
+            urgency: sniper.urgency,
+            competition: sniper.competition,
+            heat_score: heat?.score ?? null,
+            heat_label: heat?.label ?? null,
             updated_at: new Date().toISOString(),
           }, { onConflict: "listing_id" });
         if (aErr) errors.push(`upsert analysis: ${aErr.message}`);
@@ -164,17 +210,32 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Mark stale listings as ended
+  // Mark stale listings as ended and harvest comps from final prices
   const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  const { data: ending } = await supabase
+    .from("listings")
+    .select("id")
+    .lt("last_seen_at", cutoff)
+    .eq("status", "active")
+    .limit(500);
+  for (const row of ending ?? []) {
+    await ingestEndedAsComp(supabase, row.id);
+  }
   await supabase.from("listings").update({ status: "ended" })
     .lt("last_seen_at", cutoff)
     .eq("status", "active");
+
+  // Refresh player heat aggregates
+  let heatUpdated = 0;
+  try { heatUpdated = await recomputePlayerHeat(supabase); } catch (e) { errors.push(`heat: ${e}`); }
 
   return new Response(JSON.stringify({
     ok: true,
     termsRun: terms?.length ?? 0,
     listingsUpserted,
     analysesUpserted,
+    compsIngested: ending?.length ?? 0,
+    playerHeatUpdated: heatUpdated,
     errors: errors.slice(0, 10),
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });

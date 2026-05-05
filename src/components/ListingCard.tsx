@@ -1,4 +1,4 @@
-import { ExternalLink, Heart } from "lucide-react";
+import { ExternalLink, Heart, Flame, Snowflake, Zap, Clock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DealScoreBadge } from "./DealScoreBadge";
 import { RecommendationPill } from "./RecommendationPill";
@@ -40,11 +40,47 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
           {a && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <RecommendationPill recommendation={a.recommendation} />
+              {a.heat_label === "HOT" && (
+                <span className="inline-flex items-center gap-0.5 rounded-full border border-rec-red/60 bg-rec-red/10 px-2 py-0.5 text-[10px] font-bold uppercase text-rec-red">
+                  <Flame className="h-3 w-3" /> Hot
+                </span>
+              )}
+              {a.heat_label === "WARM" && (
+                <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-500/60 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-600">
+                  Warm
+                </span>
+              )}
+              {a.heat_label === "COOL" && (
+                <span className="inline-flex items-center gap-0.5 rounded-full border border-sky-500/60 bg-sky-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-sky-600">
+                  Cool
+                </span>
+              )}
+              {a.heat_label === "COLD" && (
+                <span className="inline-flex items-center gap-0.5 rounded-full border border-slate-400/60 bg-slate-400/10 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-500">
+                  <Snowflake className="h-3 w-3" /> Cold
+                </span>
+              )}
+              {a.urgency === "HIGH" && (
+                <span className="inline-flex items-center gap-0.5 rounded-full border border-rec-red/60 bg-rec-red/10 px-2 py-0.5 text-[10px] font-bold uppercase text-rec-red">
+                  <Clock className="h-3 w-3" /> Slut snart
+                </span>
+              )}
+              {a.competition === "LOW" && (
+                <span className="inline-flex items-center gap-0.5 rounded-full border border-rec-bid/60 bg-rec-bid/10 px-2 py-0.5 text-[10px] font-bold uppercase text-rec-bid">
+                  <Users className="h-3 w-3" /> Låg konk.
+                </span>
+              )}
+              {a.sniper_score >= 75 && (
+                <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-500 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-600">
+                  <Zap className="h-3 w-3" /> Sniper {a.sniper_score}
+                </span>
+              )}
               {a.tags.slice(0, 4).map((t) => (
                 <span key={t} className={cn(
                   "rounded-full border border-border bg-secondary px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
                   ["Red Flag", "Reprint Risk", "Damaged", "Overpriced"].includes(t) && "border-rec-red text-rec-red",
                   t === "Swedish Edge" && "border-rec-bid text-rec-bid",
+                  ["Very Good Deal", "Good Deal"].includes(t) && "border-rec-bid text-rec-bid",
                 )}>{t}</span>
               ))}
             </div>
@@ -54,6 +90,29 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
 
       {a && (
         <>
+          {a.comp_count >= 3 && a.comp_median ? (
+            <div className="mt-3 rounded-lg border border-border bg-muted/40 p-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Marknad ({a.comp_count} sålda)</span>
+                <span className="font-medium tabular-nums">{a.comp_low}–{a.comp_high} kr</span>
+              </div>
+              <div className="mt-0.5 flex items-center justify-between">
+                <span className="text-muted-foreground">Median</span>
+                <span className="font-bold tabular-nums">{a.comp_median} kr</span>
+              </div>
+              {a.discount_percent !== null && (
+                <div className="mt-0.5 flex items-center justify-between">
+                  <span className="text-muted-foreground">Rabatt</span>
+                  <span className={cn(
+                    "font-bold tabular-nums",
+                    a.discount_percent > 0 ? "text-rec-bid" : "text-rec-red"
+                  )}>
+                    {a.discount_percent > 0 ? `-${a.discount_percent}%` : `+${Math.abs(a.discount_percent)}%`}
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : null}
           {a.reasoning && (
             <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{a.reasoning}</p>
           )}

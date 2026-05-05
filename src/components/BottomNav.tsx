@@ -1,11 +1,13 @@
 import { NavLink } from "react-router-dom";
-import { Home, List, Heart } from "lucide-react";
+import { Home, List, Heart, Briefcase, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
   { to: "/", label: "Hem", icon: Home },
   { to: "/listings", label: "Lista", icon: List },
-  { to: "/watchlist", label: "Bevakade", icon: Heart },
+  { to: "/watchlist", label: "Bevak", icon: Heart },
+  { to: "/portfolio", label: "Portfölj", icon: Briefcase },
+  { to: "/dashboard", label: "Stats", icon: BarChart3 },
 ];
 
 export function BottomNav() {

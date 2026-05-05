@@ -47,6 +47,13 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        rec: {
+          buy: "hsl(var(--rec-buy))",
+          bid: "hsl(var(--rec-bid))",
+          watch: "hsl(var(--rec-watch))",
+          skip: "hsl(var(--rec-skip))",
+          red: "hsl(var(--rec-red))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

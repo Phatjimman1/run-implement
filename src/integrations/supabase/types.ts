@@ -17,13 +17,23 @@ export type Database = {
       analyses: {
         Row: {
           card_count: number | null
+          card_signature: string | null
+          comp_confidence: string
+          comp_count: number
+          comp_high: number | null
+          comp_low: number | null
+          comp_median: number | null
+          competition: string
           deal_score: number
           detected_brands: string[]
           detected_card_types: string[]
           detected_players: string[]
           detected_sets: string[]
+          discount_percent: number | null
           estimated_market_value: number | null
           flip_score: number
+          heat_label: string | null
+          heat_score: number | null
           hold_score: number
           id: string
           is_auto: boolean
@@ -43,19 +53,31 @@ export type Database = {
           reasoning: string | null
           recommendation: string
           risk_score: number
+          sniper_score: number
           tags: string[]
           updated_at: string
+          urgency: string
           value_score: number
         }
         Insert: {
           card_count?: number | null
+          card_signature?: string | null
+          comp_confidence?: string
+          comp_count?: number
+          comp_high?: number | null
+          comp_low?: number | null
+          comp_median?: number | null
+          competition?: string
           deal_score?: number
           detected_brands?: string[]
           detected_card_types?: string[]
           detected_players?: string[]
           detected_sets?: string[]
+          discount_percent?: number | null
           estimated_market_value?: number | null
           flip_score?: number
+          heat_label?: string | null
+          heat_score?: number | null
           hold_score?: number
           id?: string
           is_auto?: boolean
@@ -75,19 +97,31 @@ export type Database = {
           reasoning?: string | null
           recommendation?: string
           risk_score?: number
+          sniper_score?: number
           tags?: string[]
           updated_at?: string
+          urgency?: string
           value_score?: number
         }
         Update: {
           card_count?: number | null
+          card_signature?: string | null
+          comp_confidence?: string
+          comp_count?: number
+          comp_high?: number | null
+          comp_low?: number | null
+          comp_median?: number | null
+          competition?: string
           deal_score?: number
           detected_brands?: string[]
           detected_card_types?: string[]
           detected_players?: string[]
           detected_sets?: string[]
+          discount_percent?: number | null
           estimated_market_value?: number | null
           flip_score?: number
+          heat_label?: string | null
+          heat_score?: number | null
           hold_score?: number
           id?: string
           is_auto?: boolean
@@ -107,8 +141,10 @@ export type Database = {
           reasoning?: string | null
           recommendation?: string
           risk_score?: number
+          sniper_score?: number
           tags?: string[]
           updated_at?: string
+          urgency?: string
           value_score?: number
         }
         Relationships: [
@@ -175,6 +211,105 @@ export type Database = {
           title?: string
           tradera_item_id?: string
           url?: string
+        }
+        Relationships: []
+      }
+      market_comps: {
+        Row: {
+          bid_count: number | null
+          brand: string | null
+          card_signature: string
+          card_type: string | null
+          id: string
+          is_auto: boolean
+          is_numbered: boolean
+          is_refractor: boolean
+          is_rookie: boolean
+          player: string | null
+          raw_title: string | null
+          sale_price: number
+          set_name: string | null
+          shipping_cost: number | null
+          sold_at: string
+          source: string
+          source_listing_id: string | null
+        }
+        Insert: {
+          bid_count?: number | null
+          brand?: string | null
+          card_signature: string
+          card_type?: string | null
+          id?: string
+          is_auto?: boolean
+          is_numbered?: boolean
+          is_refractor?: boolean
+          is_rookie?: boolean
+          player?: string | null
+          raw_title?: string | null
+          sale_price: number
+          set_name?: string | null
+          shipping_cost?: number | null
+          sold_at?: string
+          source?: string
+          source_listing_id?: string | null
+        }
+        Update: {
+          bid_count?: number | null
+          brand?: string | null
+          card_signature?: string
+          card_type?: string | null
+          id?: string
+          is_auto?: boolean
+          is_numbered?: boolean
+          is_refractor?: boolean
+          is_rookie?: boolean
+          player?: string | null
+          raw_title?: string | null
+          sale_price?: number
+          set_name?: string | null
+          shipping_cost?: number | null
+          sold_at?: string
+          source?: string
+          source_listing_id?: string | null
+        }
+        Relationships: []
+      }
+      player_heat: {
+        Row: {
+          active_listing_count: number
+          heat_score: number
+          id: string
+          label: string
+          player: string
+          prior_avg_price: number | null
+          recent_avg_price: number | null
+          sample_size: number
+          trend: string
+          updated_at: string
+        }
+        Insert: {
+          active_listing_count?: number
+          heat_score?: number
+          id?: string
+          label?: string
+          player: string
+          prior_avg_price?: number | null
+          recent_avg_price?: number | null
+          sample_size?: number
+          trend?: string
+          updated_at?: string
+        }
+        Update: {
+          active_listing_count?: number
+          heat_score?: number
+          id?: string
+          label?: string
+          player?: string
+          prior_avg_price?: number | null
+          recent_avg_price?: number | null
+          sample_size?: number
+          trend?: string
+          updated_at?: string
         }
         Relationships: []
       }

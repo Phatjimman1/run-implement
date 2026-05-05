@@ -49,6 +49,8 @@ export const BRAND_TIERS: Record<string, "S" | "A" | "B" | "C"> = {
   "topps flagship": "C",
   "bowman university": "C",
   "topps now": "C",
+  "hoops": "C",
+  "bowman chrome": "A",
 };
 
 export const RED_FLAG_TERMS = [
@@ -222,6 +224,8 @@ export function scoreListing(input: ScoreInput): ScoreResult {
   let base = 0;
   if (p.isCertifiedAuto) base += 30;
   if (p.isRookie && p.isAuto) base += 35;
+  // Rookie Patch Auto (RPA) – elite tier
+  if (/\brpa\b|rookie patch auto|patch auto/i.test(input.title)) base += 25;
   if (p.isRefractor || p.sets.includes("prizm") || p.sets.includes("panini prizm")) base += 20;
   if (p.isXFractor) base += 22;
   if (p.isNumbered) base += 25;
@@ -290,7 +294,7 @@ export function scoreListing(input: ScoreInput): ScoreResult {
 
   let recommendation: Recommendation = "WATCH";
   if (dealScore >= 80) recommendation = "BUY_NOW";
-  else if (dealScore >= 65) recommendation = "BID";
+  else if (dealScore >= 64) recommendation = "BID";
   else if (dealScore >= 50) recommendation = "WATCH";
   else if (dealScore >= 25) recommendation = "SKIP";
   else recommendation = "RED_FLAG";

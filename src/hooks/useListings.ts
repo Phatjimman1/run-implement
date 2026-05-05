@@ -37,6 +37,18 @@ export type ListingWithAnalysis = {
     is_rookie: boolean;
     price_per_card: number | null;
     card_count: number | null;
+    card_signature: string | null;
+    comp_median: number | null;
+    comp_low: number | null;
+    comp_high: number | null;
+    comp_count: number;
+    comp_confidence: "HIGH" | "MED" | "LOW";
+    discount_percent: number | null;
+    sniper_score: number;
+    urgency: "LOW" | "MED" | "HIGH";
+    competition: "LOW" | "MED" | "HIGH";
+    heat_score: number | null;
+    heat_label: "HOT" | "WARM" | "COOL" | "COLD" | null;
   } | null;
 };
 

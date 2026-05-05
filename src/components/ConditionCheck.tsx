@@ -66,9 +66,9 @@ export function ConditionCheck({ listingId, imageUrl, title }: { listingId: stri
                   <div className="text-xs font-semibold uppercase">{a.condition_label}</div>
                 </div>
                 <div className="text-right text-xs">
-                  <div className={cn("font-bold uppercase", a.psa_potential === "PSA_10_POTENTIAL" && "text-rec-bid")}>{a.psa_potential.replaceAll("_", " ")}</div>
+                  <div className={cn("font-bold uppercase", a.psa_potential === "PSA_10_POTENTIAL" && "text-rec-bid")}>{a.psa_potential.replace(/_/g, " ")}</div>
                   <div className="text-muted-foreground">Confidence: {a.confidence}</div>
-                  <div className="mt-1 text-[10px] font-semibold uppercase">{a.condition_advice.replaceAll("_", " ")}</div>
+                  <div className="mt-1 text-[10px] font-semibold uppercase">{a.condition_advice.replace(/_/g, " ")}</div>
                 </div>
               </div>
               <Row label="Centrering" score={a.centering?.score} lbl={`${a.centering?.label ?? ""} ${a.centering?.leftRightRatio ?? ""} | ${a.centering?.topBottomRatio ?? ""}`} issues={a.centering?.explanation ? [a.centering.explanation] : []} />

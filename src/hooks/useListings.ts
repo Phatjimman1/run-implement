@@ -1,0 +1,93 @@
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+export type ListingWithAnalysis = {
+  id: string;
+  tradera_item_id: string;
+  title: string;
+  url: string;
+  image_urls: string[];
+  current_price: number | null;
+  shipping_cost: number | null;
+  end_time: string | null;
+  bid_count: number | null;
+  seller_name: string | null;
+  status: string;
+  last_seen_at: string;
+  first_seen_at: string;
+  analyses: {
+    deal_score: number;
+    value_score: number;
+    flip_score: number;
+    hold_score: number;
+    risk_score: number;
+    recommendation: string;
+    max_bid: number;
+    estimated_market_value: number | null;
+    reasoning: string | null;
+    tags: string[];
+    detected_players: string[];
+    detected_brands: string[];
+    detected_card_types: string[];
+    is_auto: boolean;
+    is_refractor: boolean;
+    is_xfractor: boolean;
+    is_insert: boolean;
+    is_rookie: boolean;
+    price_per_card: number | null;
+    card_count: number | null;
+  } | null;
+};
+
+export function useListings() {
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("listings-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "analyses" }, () => {
+        qc.invalidateQueries({ queryKey: ["listings"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [qc]);
+
+  return useQuery({
+    queryKey: ["listings"],
+    queryFn: async (): Promise<ListingWithAnalysis[]> => {
+      const { data, error } = await supabase
+        .from("listings")
+        .select(`
+          id, tradera_item_id, title, url, image_urls, current_price, shipping_cost,
+          end_time, bid_count, seller_name, status, last_seen_at, first_seen_at,
+          analyses ( * )
+        `)
+        .eq("status", "active")
+        .order("last_seen_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return (data ?? []).map((l: any) => ({
+        ...l,
+        analyses: Array.isArray(l.analyses) ? l.analyses[0] ?? null : l.analyses,
+      }));
+    },
+    staleTime: 30_000,
+  });
+}
+
+export function useLastSync() {
+  return useQuery({
+    queryKey: ["last-sync"],
+    queryFn: async (): Promise<string | null> => {
+      const { data } = await supabase
+        .from("search_terms")
+        .select("last_run_at")
+        .order("last_run_at", { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+      return data?.last_run_at ?? null;
+    },
+    refetchInterval: 60_000,
+  });
+}

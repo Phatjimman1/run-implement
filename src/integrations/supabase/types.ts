@@ -14,8 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      alerts: {
+        Row: {
+          deal_score: number | null
+          id: string
+          listing_id: string
+          message: string | null
+          read: boolean
+          sniper_score: number | null
+          triggered_at: string
+          type: string
+        }
+        Insert: {
+          deal_score?: number | null
+          id?: string
+          listing_id: string
+          message?: string | null
+          read?: boolean
+          sniper_score?: number | null
+          triggered_at?: string
+          type: string
+        }
+        Update: {
+          deal_score?: number | null
+          id?: string
+          listing_id?: string
+          message?: string | null
+          read?: boolean
+          sniper_score?: number | null
+          triggered_at?: string
+          type?: string
+        }
+        Relationships: []
+      }
       analyses: {
         Row: {
+          block_reason: string | null
           card_count: number | null
           card_signature: string | null
           comp_confidence: string
@@ -37,6 +71,7 @@ export type Database = {
           hold_score: number
           id: string
           is_auto: boolean
+          is_blocked: boolean
           is_certified_auto: boolean
           is_college: boolean
           is_damaged: boolean
@@ -60,6 +95,7 @@ export type Database = {
           value_score: number
         }
         Insert: {
+          block_reason?: string | null
           card_count?: number | null
           card_signature?: string | null
           comp_confidence?: string
@@ -81,6 +117,7 @@ export type Database = {
           hold_score?: number
           id?: string
           is_auto?: boolean
+          is_blocked?: boolean
           is_certified_auto?: boolean
           is_college?: boolean
           is_damaged?: boolean
@@ -104,6 +141,7 @@ export type Database = {
           value_score?: number
         }
         Update: {
+          block_reason?: string | null
           card_count?: number | null
           card_signature?: string | null
           comp_confidence?: string
@@ -125,6 +163,7 @@ export type Database = {
           hold_score?: number
           id?: string
           is_auto?: boolean
+          is_blocked?: boolean
           is_certified_auto?: boolean
           is_college?: boolean
           is_damaged?: boolean
@@ -313,6 +352,57 @@ export type Database = {
         }
         Relationships: []
       }
+      portfolio_items: {
+        Row: {
+          estimated_value: number
+          exit_platform: string | null
+          id: string
+          listing_id: string | null
+          notes: string | null
+          player: string | null
+          purchase_price: number
+          purchased_at: string
+          shipping: number
+          sold_at: string | null
+          sold_price: number | null
+          status: string
+          title: string
+          total_cost: number | null
+        }
+        Insert: {
+          estimated_value?: number
+          exit_platform?: string | null
+          id?: string
+          listing_id?: string | null
+          notes?: string | null
+          player?: string | null
+          purchase_price: number
+          purchased_at?: string
+          shipping?: number
+          sold_at?: string | null
+          sold_price?: number | null
+          status?: string
+          title: string
+          total_cost?: number | null
+        }
+        Update: {
+          estimated_value?: number
+          exit_platform?: string | null
+          id?: string
+          listing_id?: string | null
+          notes?: string | null
+          player?: string | null
+          purchase_price?: number
+          purchased_at?: string
+          shipping?: number
+          sold_at?: string | null
+          sold_price?: number | null
+          status?: string
+          title?: string
+          total_cost?: number | null
+        }
+        Relationships: []
+      }
       search_terms: {
         Row: {
           active: boolean
@@ -337,6 +427,39 @@ export type Database = {
           last_run_at?: string | null
           priority?: number
           query?: string
+        }
+        Relationships: []
+      }
+      watchlist_items: {
+        Row: {
+          created_at: string
+          id: string
+          listing_id: string
+          notes: string | null
+          recommended_max_bid: number | null
+          status: string
+          updated_at: string
+          user_max_bid: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          listing_id: string
+          notes?: string | null
+          recommended_max_bid?: number | null
+          status?: string
+          updated_at?: string
+          user_max_bid?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          listing_id?: string
+          notes?: string | null
+          recommended_max_bid?: number | null
+          status?: string
+          updated_at?: string
+          user_max_bid?: number | null
         }
         Relationships: []
       }

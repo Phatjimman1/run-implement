@@ -50,6 +50,8 @@ export type ListingWithAnalysis = {
     competition: "LOW" | "MED" | "HIGH";
     heat_score: number | null;
     heat_label: "HOT" | "WARM" | "COOL" | "COLD" | null;
+    is_blocked: boolean;
+    block_reason: string | null;
   } | null;
 };
 
@@ -119,7 +121,7 @@ export function useListings() {
       return (data ?? []).map((l: any) => ({
         ...l,
         analyses: Array.isArray(l.analyses) ? l.analyses[0] ?? null : l.analyses,
-      }));
+      })).filter((l: ListingWithAnalysis) => !l.analyses?.is_blocked);
     },
     staleTime: 30_000,
   });

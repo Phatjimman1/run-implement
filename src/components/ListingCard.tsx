@@ -113,7 +113,7 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => toggle(listing.id)}
+                onClick={() => toggle(listing.id, a?.max_bid)}
                 aria-label="Bevaka"
               >
                 <Heart className={cn("h-4 w-4", watched && "fill-rec-red text-rec-red")} />

@@ -22,6 +22,18 @@ const Index = () => {
 
     return {
       top: [...withA].sort((a, b) => (b.analyses!.deal_score - a.analyses!.deal_score)).slice(0, 6),
+      sniper: [...withA]
+        .filter((l) => {
+          const a = l.analyses!;
+          if (a.sniper_score < 70) return false;
+          if ((l.current_price ?? 0) > 300) return false;
+          if (!l.end_time) return false;
+          const mins = (new Date(l.end_time).getTime() - Date.now()) / 60000;
+          return mins > 0 && mins < 120;
+        })
+        .sort((a, b) => b.analyses!.sniper_score - a.analyses!.sniper_score)
+        .slice(0, 8),
+      hotPlayers: withA.filter((l) => l.analyses!.heat_label === "HOT").slice(0, 6),
       ending: withA.filter(isEndingSoon).sort((a, b) => new Date(a.end_time!).getTime() - new Date(b.end_time!).getTime()).slice(0, 6),
       autosUnder200: withA.filter((l) => l.analyses!.is_auto && totalCost(l) > 0 && totalCost(l) < 200).slice(0, 6),
       refractorsUnder100: withA.filter((l) => l.analyses!.is_refractor && totalCost(l) > 0 && totalCost(l) < 100).slice(0, 6),
@@ -43,6 +55,8 @@ const Index = () => {
           <EmptyState />
         ) : (
           <>
+            <Section title="🎯 SNIPER DEALS" subtitle="Hög sannolikhet, låg konkurrens, slutar snart" listings={sections.sniper} />
+            <Section title="🔥 HOT players" subtitle="Spelare som trendar uppåt" listings={sections.hotPlayers} />
             <Section title="🔥 Top Deals nu" subtitle="Högst Deal Score just nu" listings={sections.top} />
             <Section title="⏰ Slutar snart" subtitle="Auktioner som löper ut inom 24 h" listings={sections.ending} />
             <Section title="✍️ Autos under 200 kr" listings={sections.autosUnder200} />

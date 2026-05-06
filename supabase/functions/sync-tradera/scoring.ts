@@ -175,6 +175,8 @@ export interface ScoreInput {
   shippingCost: number | null;
   endTime: Date | null;
   bidCount: number | null;
+  imageCount?: number;
+  compMedian?: number | null;
 }
 
 export interface ScoreResult extends ParsedTitle {
@@ -200,6 +202,8 @@ export function scoreListing(input: ScoreInput): ScoreResult {
   const price = input.currentPrice ?? 0;
   const shipping = input.shippingCost ?? 0;
   const totalCost = price + shipping;
+  const imageCount = input.imageCount ?? 0;
+  const compMedian = input.compMedian ?? null;
 
   // Estimated market value (very rough, regelbaserat)
   let mv = 60;
@@ -234,6 +238,8 @@ export function scoreListing(input: ScoreInput): ScoreResult {
   if (p.sets.some((s) => ["topps chrome", "prizm", "panini prizm", "donruss optic", "optic"].includes(s))) base += 15;
   if (p.sets.includes("topps finest")) base += 10;
   if (p.sets.includes("national treasures") && (p.isAuto || p.isNumbered)) base += 15;
+  // Spec: Obsidian RPA / Auto +15
+  if (p.sets.includes("obsidian") && p.isAuto) base += 15;
   if (p.isLegend) base += 10;
   if (p.isBlueChip) base += 20;
   if (p.isRookieUpside) base += 15;
@@ -269,6 +275,12 @@ export function scoreListing(input: ScoreInput): ScoreResult {
   if (p.redFlagTerms.includes("mystery pack") || p.redFlagTerms.includes("chaser pack")) neg -= 50;
   if (p.isDamaged) neg -= 40;
   if (p.isAuto && !p.isCertifiedAuto && !p.sets.length) neg -= 40;
+  // Spec: Poor images
+  if (imageCount === 0) neg -= 15;
+  // Spec: No back photo on expensive card
+  if (imageCount < 2 && totalCost > 300) neg -= 10;
+  // Spec: Hype price (heated bidding pushing price above market)
+  if ((input.bidCount ?? 0) >= 8 && compMedian && compMedian > 0 && totalCost > compMedian * 1.3) neg -= 25;
 
   // Hype check: high price + low tier
   if (totalCost > 500 && p.isInsert) neg -= 25;
@@ -294,7 +306,7 @@ export function scoreListing(input: ScoreInput): ScoreResult {
 
   let recommendation: Recommendation = "WATCH";
   if (dealScore >= 80) recommendation = "BUY_NOW";
-  else if (dealScore >= 64) recommendation = "BID";
+  else if (dealScore >= 65) recommendation = "BID";
   else if (dealScore >= 50) recommendation = "WATCH";
   else if (dealScore >= 25) recommendation = "SKIP";
   else recommendation = "RED_FLAG";

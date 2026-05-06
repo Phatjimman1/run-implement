@@ -150,10 +150,10 @@ function PortfolioRow({ item, onUpdate, onDelete }: {
           >{s}</Button>
         ))}
         <Badge variant="outline" className="ml-auto text-[10px]">
-          Sälj på {exit.platform} · {exit.expectedRange[0]}–{exit.expectedRange[1]} kr
+          {exit.strategy} på {exit.platform} · {exit.expectedRange[0]}–{exit.expectedRange[1]} kr
         </Badge>
       </div>
-      <p className="mt-1 text-[10px] text-muted-foreground">{exit.reason}</p>
+      <p className="mt-1 text-[10px] text-muted-foreground">{exit.reasoning}</p>
     </div>
   );
 }

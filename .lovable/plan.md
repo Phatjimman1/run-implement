@@ -1,115 +1,135 @@
-## NBA Card Sniper – MVP
+# Gap-Fix Implementation Plan – Strict spec compliance
 
-Mobil-first webbapp som var 10:e minut skrapar Traderas söksidor efter NBA-kort, kör en regelbaserad scoringmotor och visar köprekommendationer (BUY / BID / WATCH / SKIP / RED FLAG) med maxbud och kort motivering.
+Goal: extend (never replace) the existing engines so the system matches the spec sections 1–12. All work is additive; no schema migrations beyond two new columns and one new table.
 
-Ingen inloggning i MVP – publik app. Watchlist sparas i webbläsarens localStorage.
+## 1. Hard Block Engine (severity)
+File: `supabase/functions/sync-tradera/blocking.ts`
+- Replace term list with the full spec list (`wcg, 23kt, 23 kt, gold plated, reprint, custom, replica, facsimile, mystery pack, chaser pack, digital card, unofficial, proxy, novelty, fake auto`).
+- Return `{ blocked, reason, severity: 'RED_FLAG' | 'HARD_BLOCK' | 'NEVER_BUY' }`.
+  - `NEVER_BUY`: `wcg`, `23kt`, `gold plated`, `fake auto`, `proxy`, `replica`, `facsimile`
+  - `HARD_BLOCK`: `reprint`, `custom`, `mystery pack`, `chaser pack`, `digital card`, `unofficial`, `novelty`
+  - `RED_FLAG`: anything else flagged
+- Migration: add column `analyses.block_severity text` (nullable).
+- `sync-tradera/index.ts`: persist `block_severity`. Listings with severity in `('HARD_BLOCK','NEVER_BUY')` are excluded from Sniper, Alerts, BUY_NOW, Top Deals (filter at write time + frontend filter).
 
----
+## 2. Deal Score completion
+File: `scoring.ts`
+- Recommendation thresholds aligned to spec:
+  - `>=80 BUY_NOW`, `65–79 BID_SNIPA` (we keep enum value `BID` but render label "BID/SNIPA"), `50–64 WATCH`, `25–49 SKIP`, `<=24 RED_FLAG`.
+- Add positive signals:
+  - Topps Finest +10 (in addition to existing tier bonus)
+  - Obsidian RPA / Auto +15
+  - Legend card +10 (already partly present – ensure +10)
+  - Blue chip player +20 (raise from current +20 confirm)
+- Add negative signals:
+  - Topps Now -10
+  - College / NIL -15
+  - No back photo on expensive card -10 (heuristic: `image_urls.length < 2 && totalCost > 300`)
+  - Hype price -25 (heuristic: `bidCount >= 8 && totalCost > median*1.3`)
+  - Poor images -15 (heuristic: `image_urls.length === 0`)
+- `ScoreInput` extended with `imageCount` and (optional) `compMedian` so signals can fire. Index.ts passes them.
 
-### 1. Datakälla – Tradera scraping via Firecrawl
+## 3. Market Anchor
+File: `supabase/functions/sync-tradera/comps.ts`
+- Extend `applyMarketAnchor` to return shape matching spec: `{ estimatedValue, medianValue, priceRange:[low,high], discountPercent, confidence, marketBonus, marketTags }`.
+- Scoring deltas:
+  - `price < median * 0.6` → +30
+  - `price < median * 0.75` → +20
+  - `price < median * 0.9` → +10
+  - `price > median * 1.2` → -20
 
-- Aktivera Lovable Cloud + Firecrawl-connector (ger `FIRECRAWL_API_KEY` server-side).
-- Edge function `sync-tradera` som:
-  1. Läser aktiva söktermer från `search_terms`-tabellen.
-  2. För varje term: anropar Firecrawl `/v2/scrape` på `https://www.tradera.com/search?q={term}&categoryId=20` (samlarbilder) med `formats: ['html','links']`.
-  3. Parsar HTML till listings (titel, pris, frakt, sluttid, bild, säljare, item-id, URL).
-  4. Upsertar i `listings` på `tradera_item_id`.
-  5. Kör `analyzeListing()` och upsertar `analyses`.
-  6. Markerar listings som inte setts på 30 min som `ended`.
-- Cron via `pg_cron` var 10:e minut.
-- Manuell "Refresh"-knapp i UI som triggar samma function.
-- Visa "Senast uppdaterad: HH:MM" baserat på senaste `last_run_at`.
+## 4. Player Heat
+File: `comps.ts` (`recomputePlayerHeat`) + `useListings.ts` type.
+- Ensure label set is exactly `HOT|WARM|COOL|COLD` and trend `UP|STABLE|DOWN`. Already mostly there; verify thresholds and persist `score` field name alignment (DB column `heat_score` stays).
 
-Fallback om Firecrawl saknar credits: tydligt felmeddelande i UI + behåll cachad data.
+## 5. Sniper Mode hardening
+File: `comps.ts` `computeSniper`
+- Require `dealScore > 70 AND totalCost < 300 AND cardType ∈ {auto, refractor, rookie} AND timeLeft < 2h` to give a sniper boost / mark as Sniper. If conditions not met → `sniperScore` capped at <75.
+- Index passes `cardTypes` flags.
 
-### 2. Söktermer (seedas i DB)
+## 6. Alert Engine
+File: `index.ts`
+- Trigger exactly `dealScore >= 80 AND total < maxBid AND timeLeft < 30min` (already present – keep). Block if severity in HARD_BLOCK/NEVER_BUY (currently only checks `blocked`; add severity gate).
 
-Alla söktermer från spec §5.1 (Topps Chrome, Refractor, X-Fractor, Auto, Prizm, Wembanyama, Cooper Flagg, SGA, Edwards, LeBron, Kobe, Jordan, m.fl.) – redigerbara senare i admin-vy (kommer i v2).
+## 7. Dashboard expansion
+File: `src/pages/Dashboard.tsx`
+- Add metric cards: total recommendations, successful deals, avg ROI (already), missed deals, sniper hit rate, recommendation quality, best/worst search terms, best/worst categories (brand), false positives, false negatives.
+- Definitions:
+  - successful deals = portfolio items where `sold_price > total_cost`
+  - missed deals = alerts with `read=false` and listing already ended
+  - sniper hit rate = portfolio items with `analyses.sniper_score >= 75` that became wins / total such
+  - recommendation quality = % BUY_NOW that became wins
+  - best/worst categories = brand grouping by avg deal_score
+  - false positives = BUY_NOW that ended with sold_price < total_cost
+  - false negatives = SKIP/RED_FLAG that later sold higher (best-effort using market_comps)
+- Implemented with one combined query hook `useDashboardStats`.
 
-### 3. Scoring-motor (TypeScript, körs i edge function)
+## 8. Exit Strategy
+File: `src/lib/exitStrategy.ts`
+- Extend return type to spec:
+  ```ts
+  { platform: 'EBAY'|'TRADERA', expectedRange:[number,number], strategy:'AUCTION'|'BUY_NOW'|'LOT'|'HOLD', reasoning: string }
+  ```
+- Strategy logic: lots → `LOT`; value > 1000 & blue chip → `HOLD`; value > 300 → `AUCTION`; else `BUY_NOW`. Rename `reason`→`reasoning` (update Portfolio page).
 
-Implementeras enligt spec §9–§12:
-- **Titelparser** extraherar spelare, brand, set, korttyp, rookie/auto/refractor/x-fractor, numbered (`/99`, `/50`), red flag-termer, antal kort i loter ("34 refractors").
-- **Spelarranking**, **brand/set-tier** och **negativa filter** som konstanter i `scoring/constants.ts`.
-- Beräknar `valueScore`, `flipScore`, `holdScore`, `riskScore` → `dealScore (0-100)`.
-- Översätter till `recommendation`:
-  - BUY_NOW 80–100 (grön)
-  - BID 65–79 (blå)
-  - WATCH 50–64 (gul)
-  - SKIP 25–49 (grå)
-  - RED_FLAG 0–24 (röd)
-- `maxBid = estimatedMarketValue * confidenceMultiplier - shipping - riskDiscount` (avrundas).
-- `pricePerCard` för loter.
-- Genererar 1–2 meningars motivering enligt mönstret i spec §19/§24.
+## 9. Condition Engine completion
+Files: `supabase/functions/analyze-condition/index.ts`, `src/components/ConditionCheck.tsx`
+- AI prompt extended to also return `image_quality.checks: { glare, blur, angle, crop, sleeve, reflection }` (each `NONE|MILD|SEVERE`). Persist into existing `image_quality` jsonb.
+- `ConditionCheck` UI: add overlay panel on the image with:
+  - detected card boundary box (from AI: `centering` provides ratios → approximate via percentage borders)
+  - vertical & horizontal center lines
+  - border guide
+  - corner markers
+  Implemented as absolutely positioned SVG overlay over the existing `<img>`.
+- New badges row showing the six image-quality checks.
 
-### 4. Datamodell (Supabase)
+## 10. Filters
+File: `src/pages/Listings.tsx`
+- Add filter controls (chips/selects): card type (Auto / Refractor / Rookie), player (datalist from analyses), brand, auto-only, refractor-only, hide red flags (exists), Swedish edge, blue chip only, ending soon.
+- All filters in same sticky bar, horizontally scrollable on mobile.
 
-- `search_terms` (id, query, active, priority, last_run_at)
-- `listings` (id, tradera_item_id unique, title, url, image_urls, current_price, shipping_cost, end_time, seller_name, seller_rating, bid_count, raw_json, first_seen_at, last_seen_at, status)
-- `analyses` (id, listing_id fk, detected_players[], detected_brands[], detected_sets[], detected_card_types[], is_rookie, is_auto, is_refractor, is_xfractor, is_numbered, is_insert, is_college, is_reprint_risk, deal_score, value_score, flip_score, hold_score, risk_score, recommendation, max_bid, reasoning, tags[], price_per_card, updated_at)
-- RLS: båda tabellerna publik SELECT (read-only data), INSERT/UPDATE endast service role (edge function).
-- `watchlist` hoppas över i MVP (localStorage istället).
+## 11. Sorting
+File: `src/pages/Listings.tsx`
+- Sort options: Deal Score, Sniper Score, Ending Soon, Lowest Price, Newest, Best Flip, Best Hold.
 
-### 5. Frontend (mobile-first, dark mode)
+## 12. Mobile UX
+- Sticky filter bar already in place; verify horizontal scroll on small viewports.
+- Loading skeletons already used; add to Dashboard sections.
+- "Last updated" timestamp added in `TopBar` from `useLastSync` (already exists – ensure visible).
+- Drawer-based detail: ConditionCheck is already a drawer; add a generic listing detail drawer trigger from `ListingCard`.
 
-**Sidor / vyer:**
-- `/` Startsida med horisontellt scrollbara sektioner:
-  1. Top Deals nu (dealScore desc)
-  2. Slutar snart (endTime asc, < 24h)
-  3. Autos under 200 kr
-  4. Refractors under 100 kr
-  5. X-Fractors på stjärnor
-  6. Nya senaste 10 min
-  7. Red Flags / undvik (kollapsbar)
-- `/listings` Full lista med sticky filterrad
-- `/listings/:id` Detaljdrawer/sida med större bild, full motivering, taggar, "Öppna på Tradera"-knapp, "Lägg i watchlist"
-- `/watchlist` Lokalt sparade favoriter
-
-**Komponenter:**
-- `ListingCard` – bild, titel, pris (+ frakt), tid kvar, taggar, **DealScoreBadge**, recommendation-pill, maxbud, motivering, "Öppna på Tradera".
-- `DealScoreBadge` – stor cirkel 0–100, färgkodad.
-- `RecommendationPill` – färgkodad enligt §13.4.
-- `TagPills` – Chrome / Refractor / Auto / RC / Blue Chip / Risk / Swedish Edge etc.
-- `FilterDrawer` – maxpris, slutar inom (1h/24h/alla), korttyp, spelare, tillverkare, recommendation-toggle, dölj inserts, dölj red flags, endast svenska spelare.
-- `SortDropdown` – Deal Score / Slutar snart / Pris / Nyast / Flip / Hold.
-- `LastUpdatedBar` – visar tid + Refresh-knapp.
-- Skeleton loading.
-
-**Designsystem:** dark mode default, HSL-tokens i `index.css`. Färgpalett: bg #0B0F14, accenter grön/blå/gul/röd för recommendation. Stora touch-ytor (min 44px). Sticky bottom-nav (Hem / Lista / Watchlist).
-
-### 6. Affärsregler (visas i UI)
-
-- "Osäker analys" om bilder/info saknas.
-- Frakt räknas alltid in i `totalCostEstimate`.
-- Aldrig "garanterat PSA 10" – bara "PSA X potential".
-- Disclaimer i footer: "Endast beslutsstöd. Inga automatiska bud."
-
-### 7. Tekniskt (för transparens)
-
+## Database changes
+Single migration:
+```sql
+ALTER TABLE public.analyses ADD COLUMN IF NOT EXISTS block_severity text;
 ```
-sync-tradera (edge fn)  ──┐
-   ▲                      │ upsert
-   │ pg_cron 10 min       ▼
-   │                  listings ── analyses
-manual refresh btn        ▲
-                          │ select
-                       Frontend (React + Tanstack Query)
-```
+No table additions needed for dashboard metrics – computed client-side from existing tables.
 
-- Lovable Cloud (Supabase) för DB + edge functions + cron.
-- Firecrawl-connector för scraping.
-- React Query med 30s stale time + realtime subscription på `analyses` så nya deals dyker upp automatiskt.
-- Inga API-nycklar i frontend.
+## Out of scope (explicit)
+- No auth changes (single-user mode preserved).
+- No new tables for analytics; metrics derived live.
+- No rewrite of working parsers, comp ingestion, or Tradera scrape pipeline.
 
-### 8. Avgränsningar (kommer i v2)
+## Files touched (summary)
+Backend
+- `supabase/functions/sync-tradera/blocking.ts`
+- `supabase/functions/sync-tradera/scoring.ts`
+- `supabase/functions/sync-tradera/comps.ts`
+- `supabase/functions/sync-tradera/index.ts`
+- `supabase/functions/analyze-condition/index.ts`
+- new migration adding `block_severity`
 
-eBay-comps, prishistorik-graf, push/Telegram-alerts, OCR/bildanalys, auth + per-user watchlist, admin-UI för söktermer/spelarranking.
+Frontend
+- `src/hooks/useListings.ts` (type extension)
+- `src/pages/Listings.tsx` (filters + sorts)
+- `src/pages/Dashboard.tsx` (expanded metrics)
+- `src/lib/exitStrategy.ts`
+- `src/pages/Portfolio.tsx` (rename `reason` → `reasoning`, show `strategy`)
+- `src/components/ConditionCheck.tsx` (overlay + quality checks)
+- `src/components/TopBar.tsx` (verify last-updated visible)
 
-### 9. Definition of Done
-
-- Cron synkar Tradera var 10:e min ✅
-- Varje listing har Deal Score + recommendation + maxbud + motivering ✅
-- Red flags markeras tydligt ✅
-- Filter + sortering fungerar på mobil ✅
-- "Öppna på Tradera" länkar till källan ✅
-- Firecrawl-nyckeln aldrig exponerad client-side ✅
+## Definition of done
+- All 12 spec sections implemented.
+- No existing working test breaks; sync-tradera still upserts listings/analyses; ConditionCheck still runs.
+- HARD_BLOCK / NEVER_BUY listings never appear in Sniper, Alerts, BUY_NOW, or Top Deals.
+- Dashboard renders all 11 metrics without errors even when portfolio is empty.

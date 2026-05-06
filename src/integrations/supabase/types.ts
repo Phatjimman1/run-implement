@@ -50,6 +50,7 @@ export type Database = {
       analyses: {
         Row: {
           block_reason: string | null
+          block_severity: string | null
           card_count: number | null
           card_signature: string | null
           comp_confidence: string
@@ -96,6 +97,7 @@ export type Database = {
         }
         Insert: {
           block_reason?: string | null
+          block_severity?: string | null
           card_count?: number | null
           card_signature?: string | null
           comp_confidence?: string
@@ -142,6 +144,7 @@ export type Database = {
         }
         Update: {
           block_reason?: string | null
+          block_severity?: string | null
           card_count?: number | null
           card_signature?: string | null
           comp_confidence?: string

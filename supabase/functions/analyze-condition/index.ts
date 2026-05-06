@@ -13,7 +13,19 @@ angled, or the card is in a sleeve/toploader with reflections, lower confidence 
 
 Return ONLY valid JSON matching this exact schema (no markdown, no commentary):
 {
-  "image_quality": { "score": 0-100, "label": "HIGH|MEDIUM|LOW|UNUSABLE", "issues": ["..."] },
+  "image_quality": {
+    "score": 0-100,
+    "label": "HIGH|MEDIUM|LOW|UNUSABLE",
+    "issues": ["..."],
+    "checks": {
+      "glare":      "NONE|MILD|SEVERE",
+      "blur":       "NONE|MILD|SEVERE",
+      "angle":      "NONE|MILD|SEVERE",
+      "crop":       "NONE|MILD|SEVERE",
+      "sleeve":     "NONE|MILD|SEVERE",
+      "reflection": "NONE|MILD|SEVERE"
+    }
+  },
   "centering":     { "leftRightRatio": "55/45", "topBottomRatio": "52/48", "score": 0-100, "label": "STRONG|ACCEPTABLE|OFF_CENTER|BAD", "explanation": "..." },
   "corners":       { "score": 0-100, "label": "CLEAN|MINOR_RISK|VISIBLE_DAMAGE|UNREADABLE", "issues": ["..."] },
   "edges":         { "score": 0-100, "label": "CLEAN|MINOR_RISK|VISIBLE_DAMAGE|UNREADABLE", "issues": ["..."] },

@@ -2,7 +2,7 @@ export type Recommendation = "BUY_NOW" | "BID" | "WATCH" | "SKIP" | "RED_FLAG";
 
 export const RECOMMENDATION_LABEL: Record<Recommendation, string> = {
   BUY_NOW: "BUY NOW",
-  BID: "BID / SNIPA",
+  BID: "BID/SNIPA",
   WATCH: "WATCH",
   SKIP: "SKIP",
   RED_FLAG: "RED FLAG",

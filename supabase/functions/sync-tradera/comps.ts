@@ -113,15 +113,20 @@ export function computeSniper(args: {
   totalCost: number;
   endTime: Date | null;
   bidCount: number | null;
+  isAuto?: boolean;
+  isRefractor?: boolean;
+  isRookie?: boolean;
 }): SniperResult {
   const { dealScore, totalCost, endTime, bidCount } = args;
+  const eligibleType = !!(args.isAuto || args.isRefractor || args.isRookie);
   let urgencyBonus = 0;
   let urgency: SniperResult["urgency"] = "LOW";
+  let minsLeft = Infinity;
   if (endTime) {
-    const mins = (endTime.getTime() - Date.now()) / 60000;
-    if (mins > 0 && mins < 15) { urgencyBonus = 20; urgency = "HIGH"; }
-    else if (mins > 0 && mins < 60) { urgencyBonus = 15; urgency = "HIGH"; }
-    else if (mins > 0 && mins < 120) { urgencyBonus = 10; urgency = "MED"; }
+    minsLeft = (endTime.getTime() - Date.now()) / 60000;
+    if (minsLeft > 0 && minsLeft < 15) { urgencyBonus = 20; urgency = "HIGH"; }
+    else if (minsLeft > 0 && minsLeft < 60) { urgencyBonus = 15; urgency = "HIGH"; }
+    else if (minsLeft > 0 && minsLeft < 120) { urgencyBonus = 10; urgency = "MED"; }
   }
   const bids = bidCount ?? 0;
   let compBonus = 0;
@@ -134,7 +139,11 @@ export function computeSniper(args: {
   if (totalCost > 500) pricePenalty = 15;
   else if (totalCost > 300) pricePenalty = 5;
 
-  const sniperScore = Math.max(0, Math.min(100, Math.round(dealScore + urgencyBonus + compBonus - pricePenalty)));
+  let sniperScore = Math.max(0, Math.min(100, Math.round(dealScore + urgencyBonus + compBonus - pricePenalty)));
+  // Spec: full Sniper status requires dealScore>70, price<300, eligible card type, timeLeft<2h
+  const fullSniperEligible =
+    dealScore > 70 && totalCost > 0 && totalCost < 300 && eligibleType && minsLeft < 120;
+  if (!fullSniperEligible && sniperScore >= 75) sniperScore = 74;
   return { sniperScore, urgency, competition };
 }
 

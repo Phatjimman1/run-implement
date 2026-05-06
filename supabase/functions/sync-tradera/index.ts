@@ -122,19 +122,28 @@ Deno.serve(async (req) => {
         }
         listingsUpserted++;
 
-        const score = scoreListing({
+        // Pre-score lookup so we can pass median into hype check
+        const preParsed = scoreListing({
           title: item.title,
           currentPrice: item.currentPrice,
           shippingCost: item.shippingCost,
           endTime: item.endTime,
           bidCount: item.bidCount,
         });
-
-        // Market Anchor (comps)
-        const signature = buildSignature(score);
-        const comp = await lookupComps(supabase, score);
+        const signature = buildSignature(preParsed);
+        const comp = await lookupComps(supabase, preParsed);
         const totalCost = (item.currentPrice ?? 0) + (item.shippingCost ?? 0);
         const market = applyMarketAnchor(totalCost, comp);
+
+        const score = scoreListing({
+          title: item.title,
+          currentPrice: item.currentPrice,
+          shippingCost: item.shippingCost,
+          endTime: item.endTime,
+          bidCount: item.bidCount,
+          imageCount: item.imageUrls?.length ?? 0,
+          compMedian: comp.median > 0 ? comp.median : null,
+        });
 
         // Player Heat
         const primaryPlayer = score.players[0];
@@ -148,6 +157,9 @@ Deno.serve(async (req) => {
           totalCost,
           endTime: item.endTime,
           bidCount: item.bidCount,
+          isAuto: score.isAuto,
+          isRefractor: score.isRefractor,
+          isRookie: score.isRookie,
         });
 
         const extraTags = [...market.marketTags];
@@ -201,13 +213,15 @@ Deno.serve(async (req) => {
             heat_label: heat?.label ?? null,
             is_blocked: block.blocked,
             block_reason: block.reason,
+            block_severity: block.severity,
             updated_at: new Date().toISOString(),
           }, { onConflict: "listing_id" });
         if (aErr) errors.push(`upsert analysis: ${aErr.message}`);
         else analysesUpserted++;
 
         // ── ALERTS ────────────────────────────────────────────────────────
-        if (!block.blocked && item.endTime) {
+        const severeBlock = block.severity === "HARD_BLOCK" || block.severity === "NEVER_BUY";
+        if (!severeBlock && item.endTime) {
           const minsLeft = (item.endTime.getTime() - Date.now()) / 60000;
           const totalCostNow = totalCost;
           if (

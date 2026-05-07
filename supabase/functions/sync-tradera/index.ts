@@ -12,6 +12,7 @@ import {
   ingestEndedAsComp,
 } from "./comps.ts";
 import { evaluateHardBlock } from "./blocking.ts";
+import { analyzeCardHierarchy } from "./hierarchy.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -167,10 +168,27 @@ Deno.serve(async (req) => {
         if (heat?.label === "COLD") extraTags.push("Cold Player");
 
         const block = evaluateHardBlock(item.title);
+        const hierarchy = analyzeCardHierarchy({
+          title: item.title,
+          isRookie: score.isRookie,
+          isAuto: score.isAuto,
+          brand: score.brands.join(" "),
+        });
+        const severeBlockEarly = block.severity === "HARD_BLOCK" || block.severity === "NEVER_BUY";
+        const hierarchyBonus = severeBlockEarly ? 0 : hierarchy.scoreBonus;
+        const dealScoreWithHierarchy = Math.max(0, Math.min(100, adjustedDealScore + hierarchyBonus));
         // Force RED_FLAG recommendation if block engine returned RED_FLAG severity
         let finalRecommendation = score.recommendation;
         if (block.severity === "RED_FLAG" || block.blocked) {
           finalRecommendation = "RED_FLAG";
+        }
+        // Re-derive recommendation with hierarchy-boosted score (unless RED_FLAG forced)
+        if (finalRecommendation !== "RED_FLAG") {
+          if (dealScoreWithHierarchy >= 80) finalRecommendation = "BUY_NOW";
+          else if (dealScoreWithHierarchy >= 65) finalRecommendation = "BID_SNIPA";
+          else if (dealScoreWithHierarchy >= 50) finalRecommendation = "WATCH";
+          else if (dealScoreWithHierarchy >= 25) finalRecommendation = "SKIP";
+          else finalRecommendation = "RED_FLAG";
         }
 
         const { error: aErr } = await supabase
@@ -198,7 +216,7 @@ Deno.serve(async (req) => {
             flip_score: score.flipScore,
             hold_score: score.holdScore,
             risk_score: score.riskScore,
-            deal_score: adjustedDealScore,
+            deal_score: dealScoreWithHierarchy,
             recommendation: finalRecommendation,
             max_bid: score.maxBid,
             estimated_market_value: comp.median > 0 ? comp.median : score.estimatedMarketValue,
@@ -219,6 +237,16 @@ Deno.serve(async (req) => {
             is_blocked: block.blocked,
             block_reason: block.reasons.join("; ") || null,
             block_severity: block.severity,
+            card_hierarchy_brand: hierarchy.brand,
+            card_hierarchy_tier: hierarchy.tier,
+            card_hierarchy_parallel: hierarchy.parallelName,
+            card_hierarchy_normalized_parallel: hierarchy.normalizedParallelName,
+            card_hierarchy_numbering: hierarchy.numbering,
+            card_hierarchy_rank: hierarchy.hierarchyRank,
+            card_hierarchy_score_bonus: hierarchyBonus,
+            collector_priority: hierarchy.collectorPriority,
+            card_hierarchy_reasoning: hierarchy.reasoning,
+            card_hierarchy_warnings_json: hierarchy.warnings,
             updated_at: new Date().toISOString(),
           }, { onConflict: "listing_id" });
         if (aErr) errors.push(`upsert analysis: ${aErr.message}`);

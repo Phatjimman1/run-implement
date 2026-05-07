@@ -11,6 +11,23 @@ import { ListingWithAnalysis, usePlayerHeatMap } from "@/hooks/useListings";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { cn } from "@/lib/utils";
 
+// Map a warning string/object to the heuristic that contributed to the assigned tier.
+function explainHeuristic(w: any, a: NonNullable<ListingWithAnalysis["analyses"]>): string {
+  const raw = (typeof w === "string" ? w : w?.message ?? w?.code ?? JSON.stringify(w)) as string;
+  const lower = raw.toLowerCase();
+  const parts: string[] = [];
+  if (lower.includes("rookie")) parts.push(`Rookie-uppgradering (Silver/Refractor → +bonus, prio HIGH).`);
+  if (lower.includes("auto")) parts.push(`Auto-heuristik: kräver certified auto för full tier.`);
+  if (lower.includes("number") || lower.includes("/")) parts.push(`Numbering-regel (${a.card_hierarchy_numbering ?? "okänd run"}) påverkar rank.`);
+  if (lower.includes("parallel") || lower.includes("prizm") || lower.includes("refractor") || lower.includes("xfractor")) {
+    parts.push(`Parallel-match: ${a.card_hierarchy_normalized_parallel ?? a.card_hierarchy_parallel ?? "okänd"} → Tier ${a.card_hierarchy_tier}.`);
+  }
+  if (lower.includes("brand") || lower.includes("unknown")) parts.push(`Brand-detektion osäker → tier kan vara underskattad.`);
+  if (lower.includes("reprint") || lower.includes("fake") || lower.includes("custom")) parts.push(`Block-/risk-heuristik kan nedgradera tiern.`);
+  if (parts.length === 0) parts.push(`Heuristik: ${a.card_hierarchy_brand ?? "?"} / ${a.card_hierarchy_normalized_parallel ?? a.card_hierarchy_parallel ?? "?"} → Tier ${a.card_hierarchy_tier} (+${a.card_hierarchy_score_bonus ?? 0}).`);
+  return parts.join(" ");
+}
+
 export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
   const a = listing.analyses;
   const { isWatched, toggle } = useWatchlist();

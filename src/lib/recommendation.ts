@@ -9,11 +9,11 @@ export const RECOMMENDATION_LABEL: Record<Recommendation, string> = {
 };
 
 export const RECOMMENDATION_COLORS: Record<Recommendation, string> = {
-  BUY_NOW: "bg-rec-buy text-background",
-  BID_SNIPA: "bg-rec-bid text-background",
-  WATCH: "bg-rec-watch text-background",
-  SKIP: "bg-rec-skip text-foreground",
-  RED_FLAG: "bg-rec-red text-background",
+  BUY_NOW: "text-white shadow-[0_4px_12px_hsl(var(--rec-buy)/0.35)] [background:var(--gradient-buy)]",
+  BID_SNIPA: "text-white shadow-[var(--shadow-glow-bid)] [background:var(--gradient-bid)]",
+  WATCH: "bg-rec-watch text-white shadow-sm",
+  SKIP: "bg-secondary text-muted-foreground border border-border",
+  RED_FLAG: "border border-rec-red/60 bg-rec-red/10 text-rec-red",
 };
 
 export function dealScoreColor(score: number): string {

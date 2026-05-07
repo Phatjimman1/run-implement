@@ -1,4 +1,5 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,6 +27,8 @@ Return ONLY valid JSON matching this exact schema (no markdown, no commentary):
       "reflection": "NONE|MILD|SEVERE"
     }
   },
+  "card_box":      { "x": 0.0-1.0, "y": 0.0-1.0, "w": 0.0-1.0, "h": 0.0-1.0 },
+  "inner_box":     { "x": 0.0-1.0, "y": 0.0-1.0, "w": 0.0-1.0, "h": 0.0-1.0 },
   "centering":     { "leftRightRatio": "55/45", "topBottomRatio": "52/48", "score": 0-100, "label": "STRONG|ACCEPTABLE|OFF_CENTER|BAD", "explanation": "..." },
   "corners":       { "score": 0-100, "label": "CLEAN|MINOR_RISK|VISIBLE_DAMAGE|UNREADABLE", "issues": ["..."] },
   "edges":         { "score": 0-100, "label": "CLEAN|MINOR_RISK|VISIBLE_DAMAGE|UNREADABLE", "issues": ["..."] },
@@ -34,7 +37,9 @@ Return ONLY valid JSON matching this exact schema (no markdown, no commentary):
   "confidence":    "HIGH|MEDIUM|LOW",
   "explanation":   "1-3 sentence cautious summary",
   "warnings":      ["..."]
-}`;
+}
+The card_box is the outer detected card boundary as fractions of image width/height (top-left origin).
+The inner_box is the printed border / inner image area. If unclear, return your best estimate.`;
 
 function labelFromScore(s: number) {
   if (s >= 85) return "EXCELLENT";
@@ -50,6 +55,111 @@ function adviceFrom(psa: string, label: string, conf: string) {
   if (conf === "LOW") return "ASK_FOR_MORE_PHOTOS";
   if (label === "GOOD" || label === "OK") return "RAW_BUY_ONLY";
   return "RAW_BUY_ONLY";
+}
+
+function clamp01(n: any): number {
+  const x = Number(n);
+  if (!isFinite(x)) return 0;
+  return Math.max(0, Math.min(1, x));
+}
+
+function rgba(r: number, g: number, b: number, a: number) {
+  return ((r & 0xff) << 24) | ((g & 0xff) << 16) | ((b & 0xff) << 8) | (a & 0xff);
+}
+
+function drawRect(img: Image, x: number, y: number, w: number, h: number, color: number, thickness = 3) {
+  for (let t = 0; t < thickness; t++) {
+    img.drawBox(Math.max(0, x + t), Math.max(0, y + t), Math.max(1, w - 2 * t), 1, color);
+    img.drawBox(Math.max(0, x + t), Math.max(0, y + h - 1 - t), Math.max(1, w - 2 * t), 1, color);
+    img.drawBox(Math.max(0, x + t), Math.max(0, y + t), 1, Math.max(1, h - 2 * t), color);
+    img.drawBox(Math.max(0, x + w - 1 - t), Math.max(0, y + t), 1, Math.max(1, h - 2 * t), color);
+  }
+}
+
+function drawDashedLine(img: Image, x1: number, y1: number, x2: number, y2: number, color: number, dash = 8, thickness = 2) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.hypot(dx, dy);
+  if (len === 0) return;
+  const ux = dx / len, uy = dy / len;
+  let drawn = 0;
+  while (drawn < len) {
+    const seg = Math.min(dash, len - drawn);
+    if ((Math.floor(drawn / dash)) % 2 === 0) {
+      const sx = Math.round(x1 + ux * drawn);
+      const sy = Math.round(y1 + uy * drawn);
+      const ex = Math.round(x1 + ux * (drawn + seg));
+      const ey = Math.round(y1 + uy * (drawn + seg));
+      // simple thick line via repeated 1px lines offset perpendicularly
+      const px = -uy, py = ux;
+      for (let t = -Math.floor(thickness / 2); t <= Math.floor(thickness / 2); t++) {
+        img.drawLine(sx + Math.round(px * t), sy + Math.round(py * t), ex + Math.round(px * t), ey + Math.round(py * t), color);
+      }
+    }
+    drawn += seg;
+  }
+}
+
+function drawCircle(img: Image, cx: number, cy: number, r: number, color: number) {
+  for (let dy = -r; dy <= r; dy++) {
+    for (let dx = -r; dx <= r; dx++) {
+      if (dx * dx + dy * dy <= r * r) {
+        const x = cx + dx, y = cy + dy;
+        if (x >= 0 && y >= 0 && x < img.width && y < img.height) img.setPixelAt(x + 1, y + 1, color);
+      }
+    }
+  }
+}
+
+async function buildOverlay(
+  imageUrl: string,
+  cardBox: { x: number; y: number; w: number; h: number },
+  innerBox: { x: number; y: number; w: number; h: number } | null,
+  centerFracX: number,
+  centerFracY: number,
+): Promise<Uint8Array | null> {
+  try {
+    const res = await fetch(imageUrl);
+    if (!res.ok) return null;
+    const buf = new Uint8Array(await res.arrayBuffer());
+    const img = await Image.decode(buf);
+    const W = img.width, H = img.height;
+
+    const cyan = rgba(0, 200, 255, 230);
+    const blue = rgba(80, 140, 255, 200);
+    const red = rgba(255, 70, 70, 240);
+
+    const cx = Math.round(cardBox.x * W);
+    const cy = Math.round(cardBox.y * H);
+    const cw = Math.round(cardBox.w * W);
+    const ch = Math.round(cardBox.h * H);
+
+    drawRect(img, cx, cy, cw, ch, cyan, Math.max(2, Math.round(Math.min(W, H) / 400)));
+
+    if (innerBox && innerBox.w > 0 && innerBox.h > 0) {
+      const ix = Math.round(innerBox.x * W);
+      const iy = Math.round(innerBox.y * H);
+      const iw = Math.round(innerBox.w * W);
+      const ih = Math.round(innerBox.h * H);
+      drawRect(img, ix, iy, iw, ih, blue, Math.max(1, Math.round(Math.min(W, H) / 600)));
+    }
+
+    // Center lines based on detected centering ratios within card box
+    const vX = Math.round(cx + cw * centerFracX);
+    const hY = Math.round(cy + ch * centerFracY);
+    drawDashedLine(img, vX, cy, vX, cy + ch, red, 12, 2);
+    drawDashedLine(img, cx, hY, cx + cw, hY, red, 12, 2);
+
+    // Corner markers
+    const r = Math.max(4, Math.round(Math.min(cw, ch) / 40));
+    [[cx, cy], [cx + cw, cy], [cx, cy + ch], [cx + cw, cy + ch]].forEach(([x, y]) => {
+      drawCircle(img, x, y, r, red);
+    });
+
+    return await img.encode(1);
+  } catch (e) {
+    console.error("overlay build failed", e);
+    return null;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -120,6 +230,45 @@ Deno.serve(async (req) => {
     const ed = parsed.edges       ?? { score: 0, label: "UNREADABLE", issues: [] };
     const su = parsed.surface     ?? { score: 0, label: "UNREADABLE", issues: [] };
 
+    // Bounding boxes (with safe defaults if AI omitted them)
+    const cb = parsed.card_box ?? { x: 0.05, y: 0.05, w: 0.9, h: 0.9 };
+    const ib = parsed.inner_box ?? null;
+    const cardBox = {
+      x: clamp01(cb.x), y: clamp01(cb.y),
+      w: clamp01(cb.w), h: clamp01(cb.h),
+    };
+    const innerBox = ib
+      ? { x: clamp01(ib.x), y: clamp01(ib.y), w: clamp01(ib.w), h: clamp01(ib.h) }
+      : null;
+
+    // Parse centering ratios → fractional center within the card box
+    const parseRatio = (s: any): number => {
+      if (typeof s !== "string") return 0.5;
+      const m = s.match(/(\d+)\s*\/\s*(\d+)/);
+      if (!m) return 0.5;
+      const a = parseInt(m[1], 10), b = parseInt(m[2], 10);
+      if (!a || !b) return 0.5;
+      return a / (a + b);
+    };
+    const centerFracX = parseRatio(ce.leftRightRatio);
+    const centerFracY = parseRatio(ce.topBottomRatio);
+
+    // Build and upload overlay PNG
+    let overlayUrl: string | null = null;
+    const overlayPng = await buildOverlay(imageUrl, cardBox, innerBox, centerFracX, centerFracY);
+    if (overlayPng) {
+      const path = `${listingId}/${Date.now()}.png`;
+      const { error: upErr } = await supabase.storage
+        .from("condition-overlays")
+        .upload(path, overlayPng, { contentType: "image/png", upsert: true });
+      if (!upErr) {
+        const { data: pub } = supabase.storage.from("condition-overlays").getPublicUrl(path);
+        overlayUrl = pub.publicUrl;
+      } else {
+        console.error("overlay upload failed", upErr);
+      }
+    }
+
     const conditionScore = Math.round(
       (ce.score ?? 0) * 0.35 + (co.score ?? 0) * 0.25 + (ed.score ?? 0) * 0.20 +
       (su.score ?? 0) * 0.10 + (iq.score ?? 0) * 0.10
@@ -134,13 +283,14 @@ Deno.serve(async (req) => {
       .insert({
         listing_id: listingId,
         image_url: imageUrl,
+        overlay_image_url: overlayUrl,
         condition_score: conditionScore,
         condition_label: conditionLabel,
         psa_potential: psaPotential,
         confidence,
         condition_advice: advice,
         image_quality: iq,
-        centering: ce,
+        centering: { ...ce, card_box: cardBox, inner_box: innerBox },
         corners: co,
         edges: ed,
         surface: su,

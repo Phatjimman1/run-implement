@@ -112,6 +112,21 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
           {a.reasoning && (
             <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{a.reasoning}</p>
           )}
+          {a.card_hierarchy_brand && a.card_hierarchy_brand !== "UNKNOWN" && a.card_hierarchy_tier && a.card_hierarchy_tier !== "UNKNOWN" && (
+            <div className="mt-2 rounded-lg border border-border bg-muted/30 p-2 text-[11px] leading-relaxed">
+              <div className="font-semibold uppercase tracking-wide text-muted-foreground">Card Hierarchy</div>
+              <div className="mt-0.5">
+                <span className="font-medium">{a.card_hierarchy_brand === "PANINI_PRIZM" ? "Panini Prizm" : "Topps Chrome"}</span>
+                {a.card_hierarchy_parallel ? ` · ${a.card_hierarchy_parallel}` : ""}
+                {" "}· Tier {a.card_hierarchy_tier}
+                {a.collector_priority ? ` · ${a.collector_priority}` : ""}
+                {a.card_hierarchy_numbering ? ` · ${a.card_hierarchy_numbering}` : ""}
+              </div>
+              {a.card_hierarchy_reasoning && (
+                <div className="mt-0.5 text-muted-foreground">{a.card_hierarchy_reasoning}</div>
+              )}
+            </div>
+          )}
           <div className="mt-3 flex items-center justify-between gap-2">
             <div className="text-xs">
               <div className="text-muted-foreground">Maxbud</div>

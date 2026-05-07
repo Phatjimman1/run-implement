@@ -183,13 +183,17 @@ export default function Listings() {
         </div>
       </div>
 
-      <main className="flex-1 mx-auto w-full max-w-3xl px-4 py-4 space-y-3">
+      <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-4">
         {isLoading ? (
-          Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-80 w-full rounded-2xl" />)}
+          </div>
         ) : listings.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">Inga annonser matchar filtret.</p>
         ) : (
-          listings.map((l) => <ListingCard key={l.id} listing={l} />)
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {listings.map((l) => <ListingCard key={l.id} listing={l} />)}
+          </div>
         )}
       </main>
       <BottomNav />

@@ -32,8 +32,8 @@ export function TopBar() {
     : "—";
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
-      <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+    <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-md">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
         <div>
           <h1 className="text-lg font-bold leading-tight">
             <span className="text-primary">NBA</span> Card Sniper

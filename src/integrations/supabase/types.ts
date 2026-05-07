@@ -52,7 +52,17 @@ export type Database = {
           block_reason: string | null
           block_severity: string | null
           card_count: number | null
+          card_hierarchy_brand: string | null
+          card_hierarchy_normalized_parallel: string | null
+          card_hierarchy_numbering: string | null
+          card_hierarchy_parallel: string | null
+          card_hierarchy_rank: number | null
+          card_hierarchy_reasoning: string | null
+          card_hierarchy_score_bonus: number
+          card_hierarchy_tier: string | null
+          card_hierarchy_warnings_json: Json
           card_signature: string | null
+          collector_priority: string | null
           comp_confidence: string
           comp_count: number
           comp_high: number | null
@@ -99,7 +109,17 @@ export type Database = {
           block_reason?: string | null
           block_severity?: string | null
           card_count?: number | null
+          card_hierarchy_brand?: string | null
+          card_hierarchy_normalized_parallel?: string | null
+          card_hierarchy_numbering?: string | null
+          card_hierarchy_parallel?: string | null
+          card_hierarchy_rank?: number | null
+          card_hierarchy_reasoning?: string | null
+          card_hierarchy_score_bonus?: number
+          card_hierarchy_tier?: string | null
+          card_hierarchy_warnings_json?: Json
           card_signature?: string | null
+          collector_priority?: string | null
           comp_confidence?: string
           comp_count?: number
           comp_high?: number | null
@@ -146,7 +166,17 @@ export type Database = {
           block_reason?: string | null
           block_severity?: string | null
           card_count?: number | null
+          card_hierarchy_brand?: string | null
+          card_hierarchy_normalized_parallel?: string | null
+          card_hierarchy_numbering?: string | null
+          card_hierarchy_parallel?: string | null
+          card_hierarchy_rank?: number | null
+          card_hierarchy_reasoning?: string | null
+          card_hierarchy_score_bonus?: number
+          card_hierarchy_tier?: string | null
+          card_hierarchy_warnings_json?: Json
           card_signature?: string | null
+          collector_priority?: string | null
           comp_confidence?: string
           comp_count?: number
           comp_high?: number | null
@@ -428,6 +458,10 @@ export type Database = {
       }
       portfolio_items: {
         Row: {
+          card_hierarchy_brand: string | null
+          card_hierarchy_parallel: string | null
+          card_hierarchy_tier: string | null
+          collector_priority: string | null
           estimated_value: number
           exit_platform: string | null
           id: string
@@ -444,6 +478,10 @@ export type Database = {
           total_cost: number | null
         }
         Insert: {
+          card_hierarchy_brand?: string | null
+          card_hierarchy_parallel?: string | null
+          card_hierarchy_tier?: string | null
+          collector_priority?: string | null
           estimated_value?: number
           exit_platform?: string | null
           id?: string
@@ -460,6 +498,10 @@ export type Database = {
           total_cost?: number | null
         }
         Update: {
+          card_hierarchy_brand?: string | null
+          card_hierarchy_parallel?: string | null
+          card_hierarchy_tier?: string | null
+          collector_priority?: string | null
           estimated_value?: number
           exit_platform?: string | null
           id?: string

@@ -2,7 +2,7 @@
 const EBAY_TIER = [
   "wembanyama", "victor wembanyama", "shai gilgeous", "sga",
   "cooper flagg", "luka doncic", "luka dončić", "lebron", "jordan", "kobe",
-  "nikola jokic", "stephen curry", "kevin durant",
+  "nikola jokic", "stephen curry", "kevin durant", "anthony edwards",
 ];
 const SWEDISH_TIER = ["pelle larsson", "bobi klintman", "lauri markkanen"];
 const BLUE_CHIP = [...EBAY_TIER, "giannis", "tatum", "anthony edwards"];

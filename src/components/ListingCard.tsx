@@ -171,10 +171,29 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
               {Array.isArray(a.card_hierarchy_warnings_json) && a.card_hierarchy_warnings_json.length > 0 && (
                 <div className="mt-1">
                   <div className="font-semibold uppercase tracking-wide text-rec-red">Varningar</div>
-                  <ul className="mt-0.5 list-disc space-y-0.5 pl-4 text-rec-red">
-                    {a.card_hierarchy_warnings_json.map((w: any, i: number) => (
-                      <li key={i}>{typeof w === "string" ? w : (w?.message ?? w?.code ?? JSON.stringify(w))}</li>
-                    ))}
+                  <ul className="mt-0.5 space-y-0.5 pl-0">
+                    {a.card_hierarchy_warnings_json.map((w: any, i: number) => {
+                      const label = typeof w === "string" ? w : (w?.message ?? w?.code ?? JSON.stringify(w));
+                      return (
+                        <li key={i} className="flex items-start gap-1 text-rec-red">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1 text-left underline decoration-dotted underline-offset-2 hover:text-rec-red/80"
+                              >
+                                <Info className="mt-0.5 h-3 w-3 shrink-0" />
+                                <span>{label}</span>
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs text-xs leading-snug">
+                              <div className="font-semibold">Heuristik bakom tiern</div>
+                              <div className="mt-1 text-muted-foreground">{explainHeuristic(w, a)}</div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}

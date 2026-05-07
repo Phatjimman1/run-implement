@@ -258,7 +258,7 @@ Deno.serve(async (req) => {
           const minsLeft = (item.endTime.getTime() - Date.now()) / 60000;
           const totalCostNow = totalCost;
           if (
-            adjustedDealScore >= 80 &&
+            dealScoreWithHierarchy >= 80 &&
             totalCostNow > 0 &&
             totalCostNow < score.maxBid &&
             minsLeft > 0 && minsLeft < 30
@@ -268,8 +268,8 @@ Deno.serve(async (req) => {
               type: "HIGH_VALUE",
               triggered_at: new Date().toISOString(),
               read: false,
-              message: `🔥 Sniper deal: ${item.title.slice(0, 60)} — ${Math.round(totalCostNow)} kr, slutar om ${Math.round(minsLeft)} min`,
-              deal_score: adjustedDealScore,
+              message: `🔥 Sniper deal: ${item.title.slice(0, 60)}${hierarchy.tier !== "UNKNOWN" && hierarchy.tier !== "F" ? ` · ${hierarchy.brand === "PANINI_PRIZM" ? "Prizm" : "Chrome"} Tier ${hierarchy.tier}` : ""} — ${Math.round(totalCostNow)} kr, slutar om ${Math.round(minsLeft)} min`,
+              deal_score: dealScoreWithHierarchy,
               sniper_score: sniper.sniperScore,
             }, { onConflict: "listing_id,type", ignoreDuplicates: true });
           } else if (sniper.sniperScore >= 80 && minsLeft > 0 && minsLeft < 15) {
@@ -279,7 +279,7 @@ Deno.serve(async (req) => {
               triggered_at: new Date().toISOString(),
               read: false,
               message: `⏰ Slutar om ${Math.round(minsLeft)} min: ${item.title.slice(0, 60)}`,
-              deal_score: adjustedDealScore,
+              deal_score: dealScoreWithHierarchy,
               sniper_score: sniper.sniperScore,
             }, { onConflict: "listing_id,type", ignoreDuplicates: true });
           }

@@ -104,8 +104,8 @@ export default function Listings() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <TopBar />
-      <div className="sticky top-[57px] z-20 border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto max-w-3xl space-y-2 px-4 py-3">
+      <div className="sticky top-[57px] z-20 border-b border-border bg-background/85 backdrop-blur-md">
+        <div className="mx-auto max-w-7xl space-y-2 px-4 py-3">
           <div className="flex gap-2">
             <Input placeholder="Sök titel, spelare…" value={search} onChange={(e) => setSearch(e.target.value)} />
             <Input type="number" inputMode="numeric" placeholder="Max kr" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} className="w-24" />

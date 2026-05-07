@@ -52,6 +52,15 @@ export type ListingWithAnalysis = {
     heat_label: "HOT" | "WARM" | "COOL" | "COLD" | null;
     is_blocked: boolean;
     block_reason: string | null;
+    card_hierarchy_brand: string | null;
+    card_hierarchy_tier: string | null;
+    card_hierarchy_parallel: string | null;
+    card_hierarchy_normalized_parallel: string | null;
+    card_hierarchy_numbering: string | null;
+    card_hierarchy_rank: number | null;
+    card_hierarchy_score_bonus: number | null;
+    collector_priority: string | null;
+    card_hierarchy_reasoning: string | null;
   } | null;
 };
 

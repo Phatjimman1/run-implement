@@ -1,5 +1,7 @@
 import { ExternalLink, Heart, Zap, Clock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 import { DealScoreBadge } from "./DealScoreBadge";
 import { RecommendationPill } from "./RecommendationPill";
 import { HeatBadge } from "./HeatBadge";

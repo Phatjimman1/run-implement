@@ -94,7 +94,7 @@ export default function Listings() {
               <SelectContent>
                 <SelectItem value="all">Alla rekommend.</SelectItem>
                 <SelectItem value="BUY_NOW">BUY NOW</SelectItem>
-                <SelectItem value="BID">BID/SNIPA</SelectItem>
+                <SelectItem value="BID_SNIPA">BID/SNIPA</SelectItem>
                 <SelectItem value="WATCH">WATCH</SelectItem>
                 <SelectItem value="SKIP">SKIP</SelectItem>
                 <SelectItem value="RED_FLAG">RED FLAG</SelectItem>

@@ -146,7 +146,7 @@ export default function Dashboard() {
               <h2 className="mb-2 text-sm font-semibold">Rekommendationer</h2>
               <div className="grid grid-cols-5 gap-2">
                 <Card label="BUY" value={(stats.recCounts.BUY_NOW ?? 0).toString()} accent="good" />
-                <Card label="BID" value={(stats.recCounts.BID ?? 0).toString()} />
+                <Card label="BID" value={(stats.recCounts.BID_SNIPA ?? 0).toString()} />
                 <Card label="WATCH" value={(stats.recCounts.WATCH ?? 0).toString()} />
                 <Card label="SKIP" value={(stats.recCounts.SKIP ?? 0).toString()} />
                 <Card label="RED" value={(stats.recCounts.RED_FLAG ?? 0).toString()} accent="bad" />

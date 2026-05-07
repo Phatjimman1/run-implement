@@ -8,7 +8,10 @@ import { Button } from "@/components/ui/button";
 import { useListings } from "@/hooks/useListings";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-type Sort = "deal" | "sniper" | "ending" | "price" | "newest" | "flip" | "hold";
+type Sort = "deal" | "sniper" | "ending" | "price" | "newest" | "flip" | "hold" | "hierarchy" | "priority";
+
+const TIER_RANK: Record<string, number> = { S: 1, A: 2, B: 3, C: 4, D: 5, E: 6, F: 7, UNKNOWN: 99 };
+const PRIORITY_RANK: Record<string, number> = { GRAIL: 1, ELITE: 2, HIGH: 3, MEDIUM: 4, LOW: 5, BASE: 6, UNKNOWN: 99 };
 
 export default function Listings() {
   const { data, isLoading } = useListings();
@@ -24,6 +27,12 @@ export default function Listings() {
   const [refractorOnly, setRefractorOnly] = useState(false);
   const [swedishOnly, setSwedishOnly] = useState(false);
   const [blueChipOnly, setBlueChipOnly] = useState(false);
+  const [hierarchyTier, setHierarchyTier] = useState<string>("all");
+  const [collectorPriority, setCollectorPriority] = useState<string>("all");
+  const [prizmOnly, setPrizmOnly] = useState(false);
+  const [chromeOnly, setChromeOnly] = useState(false);
+  const [grailsOnly, setGrailsOnly] = useState(false);
+  const [rookieHierarchyOnly, setRookieHierarchyOnly] = useState(false);
   const [sort, setSort] = useState<Sort>("deal");
 
   const brandOptions = useMemo(() => {
@@ -64,6 +73,12 @@ export default function Listings() {
     if (hideRedFlags) l = l.filter((x) => x.analyses!.recommendation !== "RED_FLAG");
     if (swedishOnly) l = l.filter((x) => (x.analyses!.tags ?? []).includes("Swedish Edge"));
     if (blueChipOnly) l = l.filter((x) => (x.analyses!.tags ?? []).includes("Blue Chip"));
+    if (hierarchyTier !== "all") l = l.filter((x) => x.analyses!.card_hierarchy_tier === hierarchyTier);
+    if (collectorPriority !== "all") l = l.filter((x) => x.analyses!.collector_priority === collectorPriority);
+    if (prizmOnly) l = l.filter((x) => x.analyses!.card_hierarchy_brand === "PANINI_PRIZM");
+    if (chromeOnly) l = l.filter((x) => x.analyses!.card_hierarchy_brand === "TOPPS_CHROME");
+    if (grailsOnly) l = l.filter((x) => x.analyses!.collector_priority === "GRAIL");
+    if (rookieHierarchyOnly) l = l.filter((x) => x.analyses!.is_rookie && (x.analyses!.card_hierarchy_brand === "PANINI_PRIZM" || x.analyses!.card_hierarchy_brand === "TOPPS_CHROME"));
     if (endingSoon) {
       l = l.filter((x) => {
         if (!x.end_time) return false;
@@ -80,9 +95,11 @@ export default function Listings() {
       case "newest": l = [...l].sort((a, b) => new Date(b.first_seen_at).getTime() - new Date(a.first_seen_at).getTime()); break;
       case "flip": l = [...l].sort((a, b) => b.analyses!.flip_score - a.analyses!.flip_score); break;
       case "hold": l = [...l].sort((a, b) => b.analyses!.hold_score - a.analyses!.hold_score); break;
+      case "hierarchy": l = [...l].sort((a, b) => (TIER_RANK[a.analyses!.card_hierarchy_tier ?? "UNKNOWN"] ?? 99) - (TIER_RANK[b.analyses!.card_hierarchy_tier ?? "UNKNOWN"] ?? 99)); break;
+      case "priority": l = [...l].sort((a, b) => (PRIORITY_RANK[a.analyses!.collector_priority ?? "UNKNOWN"] ?? 99) - (PRIORITY_RANK[b.analyses!.collector_priority ?? "UNKNOWN"] ?? 99)); break;
     }
     return l;
-  }, [data, search, maxPrice, recFilter, cardType, brand, autoOnly, refractorOnly, hideInserts, hideRedFlags, swedishOnly, blueChipOnly, endingSoon, sort]);
+  }, [data, search, maxPrice, recFilter, cardType, brand, autoOnly, refractorOnly, hideInserts, hideRedFlags, swedishOnly, blueChipOnly, hierarchyTier, collectorPriority, prizmOnly, chromeOnly, grailsOnly, rookieHierarchyOnly, endingSoon, sort]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -131,6 +148,22 @@ export default function Listings() {
                 <SelectItem value="newest">Nyast</SelectItem>
                 <SelectItem value="flip">Bästa Flip</SelectItem>
                 <SelectItem value="hold">Bästa Hold</SelectItem>
+                <SelectItem value="hierarchy">Bästa Hierarki</SelectItem>
+                <SelectItem value="priority">Collector Priority</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={hierarchyTier} onValueChange={setHierarchyTier}>
+              <SelectTrigger className="h-8 w-[120px] shrink-0 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Alla tiers</SelectItem>
+                {(["S","A","B","C","D","E","F"] as const).map((t) => <SelectItem key={t} value={t}>Tier {t}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={collectorPriority} onValueChange={setCollectorPriority}>
+              <SelectTrigger className="h-8 w-[140px] shrink-0 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Alla priorities</SelectItem>
+                {(["GRAIL","ELITE","HIGH","MEDIUM","LOW","BASE"] as const).map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -142,6 +175,10 @@ export default function Listings() {
             <Toggle on={hideRedFlags} onClick={() => setHideRedFlags(v => !v)}>Dölj red flags</Toggle>
             <Toggle on={swedishOnly} onClick={() => setSwedishOnly(v => !v)}>Swedish edge</Toggle>
             <Toggle on={blueChipOnly} onClick={() => setBlueChipOnly(v => !v)}>Blue chip</Toggle>
+            <Toggle on={prizmOnly} onClick={() => setPrizmOnly(v => !v)}>Prizm only</Toggle>
+            <Toggle on={chromeOnly} onClick={() => setChromeOnly(v => !v)}>Chrome only</Toggle>
+            <Toggle on={grailsOnly} onClick={() => setGrailsOnly(v => !v)}>Grails</Toggle>
+            <Toggle on={rookieHierarchyOnly} onClick={() => setRookieHierarchyOnly(v => !v)}>Rookie hierarki</Toggle>
           </div>
         </div>
       </div>

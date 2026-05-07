@@ -10,7 +10,7 @@ export function DealScoreBadge({ score, size = "md" }: { score: number; size?: "
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full border-2 font-bold tabular-nums bg-card",
+        "flex shrink-0 items-center justify-center rounded-full border-2 font-bold tabular-nums bg-card shadow-[var(--shadow-card)]",
         sizes[size],
         dealScoreColor(score),
       )}

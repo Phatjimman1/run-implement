@@ -42,7 +42,12 @@ export default function Listings() {
       const max = parseInt(maxPrice, 10);
       if (!isNaN(max)) l = l.filter((x) => (x.current_price ?? 0) <= max);
     }
-    if (recFilter !== "all") l = l.filter((x) => x.analyses!.recommendation === recFilter);
+    if (recFilter !== "all") {
+      l = l.filter((x) => {
+        const r = x.analyses!.recommendation === "BID" ? "BID_SNIPA" : x.analyses!.recommendation;
+        return r === recFilter;
+      });
+    }
     if (cardType !== "all") {
       l = l.filter((x) => {
         const a = x.analyses!;
@@ -94,7 +99,7 @@ export default function Listings() {
               <SelectContent>
                 <SelectItem value="all">Alla rekommend.</SelectItem>
                 <SelectItem value="BUY_NOW">BUY NOW</SelectItem>
-                <SelectItem value="BID">BID/SNIPA</SelectItem>
+                <SelectItem value="BID_SNIPA">BID/SNIPA</SelectItem>
                 <SelectItem value="WATCH">WATCH</SelectItem>
                 <SelectItem value="SKIP">SKIP</SelectItem>
                 <SelectItem value="RED_FLAG">RED FLAG</SelectItem>

@@ -167,6 +167,11 @@ Deno.serve(async (req) => {
         if (heat?.label === "COLD") extraTags.push("Cold Player");
 
         const block = evaluateHardBlock(item.title);
+        // Force RED_FLAG recommendation if block engine returned RED_FLAG severity
+        let finalRecommendation = score.recommendation;
+        if (block.severity === "RED_FLAG" || block.blocked) {
+          finalRecommendation = "RED_FLAG";
+        }
 
         const { error: aErr } = await supabase
           .from("analyses")
@@ -194,7 +199,7 @@ Deno.serve(async (req) => {
             hold_score: score.holdScore,
             risk_score: score.riskScore,
             deal_score: adjustedDealScore,
-            recommendation: score.recommendation,
+            recommendation: finalRecommendation,
             max_bid: score.maxBid,
             estimated_market_value: comp.median > 0 ? comp.median : score.estimatedMarketValue,
             reasoning: score.reasoning,
@@ -212,7 +217,7 @@ Deno.serve(async (req) => {
             heat_score: heat?.score ?? null,
             heat_label: heat?.label ?? null,
             is_blocked: block.blocked,
-            block_reason: block.reason,
+            block_reason: block.reasons.join("; ") || null,
             block_severity: block.severity,
             updated_at: new Date().toISOString(),
           }, { onConflict: "listing_id" });

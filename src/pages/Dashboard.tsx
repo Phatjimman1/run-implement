@@ -6,9 +6,9 @@ import { usePortfolio } from "@/hooks/usePortfolio";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-function useDashboardStats() {
+function useDashboardStats(portfolio: any[]) {
   return useQuery({
-    queryKey: ["dashboard-stats-v2"],
+    queryKey: ["dashboard-stats-v3", portfolio.length],
     queryFn: async () => {
       const [active, recs, comps, alertsAll, alertsUnreadEnded, blocked, terms, brandRows] = await Promise.all([
         supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "active"),
@@ -27,7 +27,8 @@ function useDashboardStats() {
       const recCounts: Record<string, number> = {};
       let snipers = 0;
       for (const r of recs.data ?? []) {
-        recCounts[r.recommendation] = (recCounts[r.recommendation] ?? 0) + 1;
+        const rec = r.recommendation === "BID" ? "BID_SNIPA" : r.recommendation;
+        recCounts[rec] = (recCounts[rec] ?? 0) + 1;
         if ((r.sniper_score ?? 0) >= 75) snipers++;
       }
 
@@ -46,6 +47,44 @@ function useDashboardStats() {
         .map(([k, v]) => ({ brand: k, avg: Math.round(v.sum / v.n) }))
         .sort((a, b) => b.avg - a.avg);
 
+      // Real performance metrics from portfolio outcomes joined with their original recommendation
+      const linkedIds = portfolio.map((i) => i.listing_id).filter(Boolean) as string[];
+      let perListingRec = new Map<string, { rec: string; sniper: number }>();
+      if (linkedIds.length) {
+        const { data: linkedRecs } = await supabase
+          .from("analyses")
+          .select("listing_id, recommendation, sniper_score")
+          .in("listing_id", linkedIds);
+        for (const r of linkedRecs ?? []) {
+          const rec = r.recommendation === "BID" ? "BID_SNIPA" : r.recommendation;
+          perListingRec.set(r.listing_id, { rec, sniper: r.sniper_score ?? 0 });
+        }
+      }
+      let fp = 0, fn = 0, sniperWins = 0, sniperTotal = 0, recWins = 0, recDecided = 0;
+      const TARGET_ROI = 0.15;
+      for (const it of portfolio) {
+        const cost = Number(it.total_cost) || 0;
+        const value = it.sold_price != null ? Number(it.sold_price) : Number(it.estimated_value);
+        if (cost <= 0) continue;
+        const roi = (value - cost) / cost;
+        const link = it.listing_id ? perListingRec.get(it.listing_id) : null;
+        if (!link) continue;
+        if (link.rec === "BUY_NOW" || link.rec === "BID_SNIPA") {
+          recDecided++;
+          if (roi > 0) recWins++;
+          else fp++;
+        }
+        if (link.rec === "SKIP" || link.rec === "RED_FLAG") {
+          if (roi >= TARGET_ROI) fn++;
+        }
+        if (link.sniper >= 75) {
+          sniperTotal++;
+          if (roi > 0) sniperWins++;
+        }
+      }
+      const sniperHitRate = sniperTotal > 0 ? Math.round((sniperWins / sniperTotal) * 100) : null;
+      const recommendationQuality = recDecided > 0 ? Math.round((recWins / recDecided) * 100) : null;
+
       return {
         activeListings: active.count ?? 0,
         comps: comps.count ?? 0,
@@ -58,6 +97,10 @@ function useDashboardStats() {
         bestTerms: (terms.data ?? []).slice(0, 3),
         bestBrands: brandAvgs.slice(0, 3),
         worstBrands: brandAvgs.slice(-3).reverse(),
+        falsePositives: fp,
+        falseNegatives: fn,
+        sniperHitRate,
+        recommendationQuality,
       };
     },
     refetchInterval: 60_000,
@@ -65,8 +108,8 @@ function useDashboardStats() {
 }
 
 export default function Dashboard() {
-  const { data: stats, isLoading } = useDashboardStats();
   const { items: portfolio } = usePortfolio();
+  const { data: stats, isLoading } = useDashboardStats(portfolio);
 
   const portCost = portfolio.reduce((s, i) => s + Number(i.total_cost), 0);
   const portValue = portfolio.reduce((s, i) => s + Number(i.estimated_value), 0);
@@ -74,12 +117,10 @@ export default function Dashboard() {
 
   const successful = portfolio.filter((i) => Number(i.estimated_value) > Number(i.total_cost)).length;
   const winRate = portfolio.length > 0 ? Math.round((successful / portfolio.length) * 100) : 0;
-  // Sniper hit rate: portfolio items linked to a listing whose analyses.sniper_score>=75 that are wins
-  // (kept simple: % of portfolio wins, since we don't fetch per-listing analyses here)
-  const sniperHitRate = winRate;
-  const recommendationQuality = winRate; // same proxy until real BUY_NOW outcome tracking exists
-  const falsePositives = portfolio.filter((i) => Number(i.estimated_value) < Number(i.total_cost)).length;
-  const falseNegatives = 0; // requires retrospective comp comparison; reported as N/A via 0
+  const sniperHitRate = stats?.sniperHitRate;
+  const recommendationQuality = stats?.recommendationQuality;
+  const falsePositives = stats?.falsePositives ?? 0;
+  const falseNegatives = stats?.falseNegatives ?? 0;
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -105,7 +146,7 @@ export default function Dashboard() {
               <h2 className="mb-2 text-sm font-semibold">Rekommendationer</h2>
               <div className="grid grid-cols-5 gap-2">
                 <Card label="BUY" value={(stats.recCounts.BUY_NOW ?? 0).toString()} accent="good" />
-                <Card label="BID" value={(stats.recCounts.BID ?? 0).toString()} />
+                <Card label="BID" value={(stats.recCounts.BID_SNIPA ?? 0).toString()} />
                 <Card label="WATCH" value={(stats.recCounts.WATCH ?? 0).toString()} />
                 <Card label="SKIP" value={(stats.recCounts.SKIP ?? 0).toString()} />
                 <Card label="RED" value={(stats.recCounts.RED_FLAG ?? 0).toString()} accent="bad" />
@@ -119,8 +160,8 @@ export default function Dashboard() {
                 <Card label="Missade deals" value={stats.missedDeals.toString()} accent="bad" />
                 <Card label="Snitt ROI" value={`${roi >= 0 ? "+" : ""}${roi}%`} accent={roi >= 0 ? "good" : "bad"} />
                 <Card label="Träffsäkerhet" value={`${winRate}%`} accent={winRate >= 50 ? "good" : "bad"} />
-                <Card label="Sniper hit rate" value={`${sniperHitRate}%`} />
-                <Card label="Rec. kvalitet" value={`${recommendationQuality}%`} />
+                <Card label="Sniper hit rate" value={sniperHitRate == null ? "N/A" : `${sniperHitRate}%`} />
+                <Card label="Rec. kvalitet" value={recommendationQuality == null ? "N/A" : `${recommendationQuality}%`} />
                 <Card label="False positives" value={falsePositives.toString()} accent="bad" />
                 <Card label="False negatives" value={falseNegatives.toString()} />
               </div>

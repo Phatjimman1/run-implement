@@ -60,7 +60,7 @@ export const RED_FLAG_TERMS = [
 
 export const NEGATIVE_FILTER = ["pokemon", "fotboll", "hockey", "yu-gi-oh", "yugioh"];
 
-export type Recommendation = "BUY_NOW" | "BID" | "WATCH" | "SKIP" | "RED_FLAG";
+export type Recommendation = "BUY_NOW" | "BID_SNIPA" | "WATCH" | "SKIP" | "RED_FLAG";
 
 export interface ParsedTitle {
   players: string[];
@@ -306,7 +306,7 @@ export function scoreListing(input: ScoreInput): ScoreResult {
 
   let recommendation: Recommendation = "WATCH";
   if (dealScore >= 80) recommendation = "BUY_NOW";
-  else if (dealScore >= 65) recommendation = "BID";
+  else if (dealScore >= 65) recommendation = "BID_SNIPA";
   else if (dealScore >= 50) recommendation = "WATCH";
   else if (dealScore >= 25) recommendation = "SKIP";
   else recommendation = "RED_FLAG";
@@ -394,7 +394,7 @@ function buildReasoning(args: {
 
   if (totalCost > 0) {
     if (recommendation === "BUY_NOW") parts.push(`pris ${Math.round(totalCost)} kr ligger under bedömt maxbud ${maxBid} kr`);
-    else if (recommendation === "BID") parts.push(`snipa upp till ${maxBid} kr`);
+    else if (recommendation === "BID_SNIPA") parts.push(`snipa upp till ${maxBid} kr`);
     else if (recommendation === "SKIP") parts.push(`pris ${Math.round(totalCost)} kr är för högt mot maxbud ${maxBid} kr`);
     else parts.push(`bevaka, maxbud ${maxBid} kr`);
   }

@@ -1,8 +1,8 @@
-export type Recommendation = "BUY_NOW" | "BID" | "WATCH" | "SKIP" | "RED_FLAG";
+export type Recommendation = "BUY_NOW" | "BID_SNIPA" | "WATCH" | "SKIP" | "RED_FLAG";
 
 export const RECOMMENDATION_LABEL: Record<Recommendation, string> = {
   BUY_NOW: "BUY NOW",
-  BID: "BID/SNIPA",
+  BID_SNIPA: "BID/SNIPA",
   WATCH: "WATCH",
   SKIP: "SKIP",
   RED_FLAG: "RED FLAG",
@@ -10,7 +10,7 @@ export const RECOMMENDATION_LABEL: Record<Recommendation, string> = {
 
 export const RECOMMENDATION_COLORS: Record<Recommendation, string> = {
   BUY_NOW: "bg-rec-buy text-background",
-  BID: "bg-rec-bid text-background",
+  BID_SNIPA: "bg-rec-bid text-background",
   WATCH: "bg-rec-watch text-background",
   SKIP: "bg-rec-skip text-foreground",
   RED_FLAG: "bg-rec-red text-background",

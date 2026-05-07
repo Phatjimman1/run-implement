@@ -1,5 +1,6 @@
-import { ExternalLink, Heart, Zap, Clock, Users } from "lucide-react";
+import { ExternalLink, Heart, Zap, Clock, Users, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { DealScoreBadge } from "./DealScoreBadge";
 import { RecommendationPill } from "./RecommendationPill";
 import { HeatBadge } from "./HeatBadge";
@@ -9,6 +10,23 @@ import { formatTimeLeft } from "@/lib/recommendation";
 import { ListingWithAnalysis, usePlayerHeatMap } from "@/hooks/useListings";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { cn } from "@/lib/utils";
+
+// Map a warning string/object to the heuristic that contributed to the assigned tier.
+function explainHeuristic(w: any, a: NonNullable<ListingWithAnalysis["analyses"]>): string {
+  const raw = (typeof w === "string" ? w : w?.message ?? w?.code ?? JSON.stringify(w)) as string;
+  const lower = raw.toLowerCase();
+  const parts: string[] = [];
+  if (lower.includes("rookie")) parts.push(`Rookie-uppgradering (Silver/Refractor → +bonus, prio HIGH).`);
+  if (lower.includes("auto")) parts.push(`Auto-heuristik: kräver certified auto för full tier.`);
+  if (lower.includes("number") || lower.includes("/")) parts.push(`Numbering-regel (${a.card_hierarchy_numbering ?? "okänd run"}) påverkar rank.`);
+  if (lower.includes("parallel") || lower.includes("prizm") || lower.includes("refractor") || lower.includes("xfractor")) {
+    parts.push(`Parallel-match: ${a.card_hierarchy_normalized_parallel ?? a.card_hierarchy_parallel ?? "okänd"} → Tier ${a.card_hierarchy_tier}.`);
+  }
+  if (lower.includes("brand") || lower.includes("unknown")) parts.push(`Brand-detektion osäker → tier kan vara underskattad.`);
+  if (lower.includes("reprint") || lower.includes("fake") || lower.includes("custom")) parts.push(`Block-/risk-heuristik kan nedgradera tiern.`);
+  if (parts.length === 0) parts.push(`Heuristik: ${a.card_hierarchy_brand ?? "?"} / ${a.card_hierarchy_normalized_parallel ?? a.card_hierarchy_parallel ?? "?"} → Tier ${a.card_hierarchy_tier} (+${a.card_hierarchy_score_bonus ?? 0}).`);
+  return parts.join(" ");
+}
 
 export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
   const a = listing.analyses;
@@ -153,10 +171,29 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
               {Array.isArray(a.card_hierarchy_warnings_json) && a.card_hierarchy_warnings_json.length > 0 && (
                 <div className="mt-1">
                   <div className="font-semibold uppercase tracking-wide text-rec-red">Varningar</div>
-                  <ul className="mt-0.5 list-disc space-y-0.5 pl-4 text-rec-red">
-                    {a.card_hierarchy_warnings_json.map((w: any, i: number) => (
-                      <li key={i}>{typeof w === "string" ? w : (w?.message ?? w?.code ?? JSON.stringify(w))}</li>
-                    ))}
+                  <ul className="mt-0.5 space-y-0.5 pl-0">
+                    {a.card_hierarchy_warnings_json.map((w: any, i: number) => {
+                      const label = typeof w === "string" ? w : (w?.message ?? w?.code ?? JSON.stringify(w));
+                      return (
+                        <li key={i} className="flex items-start gap-1 text-rec-red">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1 text-left underline decoration-dotted underline-offset-2 hover:text-rec-red/80"
+                              >
+                                <Info className="mt-0.5 h-3 w-3 shrink-0" />
+                                <span>{label}</span>
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs text-xs leading-snug">
+                              <div className="font-semibold">Heuristik bakom tiern</div>
+                              <div className="mt-1 text-muted-foreground">{explainHeuristic(w, a)}</div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}

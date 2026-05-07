@@ -1,4 +1,4 @@
-import { ExternalLink, Heart, Zap, Clock, Users, Info } from "lucide-react";
+import { ExternalLink, Heart, Zap, Clock, Users, Info, Flame, ImageOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { DealScoreBadge } from "./DealScoreBadge";
@@ -6,6 +6,7 @@ import { RecommendationPill } from "./RecommendationPill";
 import { HeatBadge } from "./HeatBadge";
 import { HierarchyBadge } from "./HierarchyBadge";
 import { ConditionCheck } from "./ConditionCheck";
+import { CardDetailsDialog } from "./CardDetailsDialog";
 import { formatTimeLeft } from "@/lib/recommendation";
 import { ListingWithAnalysis, usePlayerHeatMap } from "@/hooks/useListings";
 import { useWatchlist } from "@/hooks/useWatchlist";
@@ -40,34 +41,63 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
   const heatLabel = a?.heat_label ?? playerHeat?.label ?? null;
   const heatScore = a?.heat_score ?? playerHeat?.heat_score ?? null;
   const heatTrend = playerHeat?.trend ?? null;
+  const isHot = heatLabel === "HOT";
+  const coverImage = listing.image_urls?.[0];
+  // Stable hue for placeholder cover based on listing id.
+  const hue = (() => {
+    let h = 0;
+    for (const c of listing.id) h = (h * 31 + c.charCodeAt(0)) % 360;
+    return h;
+  })();
 
   return (
-    <article className="group rounded-2xl border border-border bg-card p-3 shadow-[var(--shadow-card)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-elevated)] hover:border-primary/30">
-      <div className="flex gap-3 sm:flex-col sm:gap-3">
-        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-56 sm:w-full">
-          {listing.image_urls[0] ? (
-            <img
-              src={listing.image_urls[0]}
-              alt={listing.title}
-              loading="lazy"
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">Ingen bild</div>
-          )}
-          {a && (
-            <div className="absolute right-2 top-2 sm:right-3 sm:top-3">
+    <article className="group flex flex-col rounded-2xl border border-border bg-card p-3 shadow-[var(--shadow-card)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-elevated)] hover:border-primary/30">
+      <div className="relative h-44 w-full overflow-hidden rounded-xl bg-muted sm:h-56">
+        {coverImage ? (
+          <img
+            src={coverImage}
+            alt={listing.title}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+          />
+        ) : (
+          <div
+            aria-label="Ingen bild tillgänglig"
+            className="relative flex h-full w-full items-center justify-center overflow-hidden"
+            style={{
+              background: `linear-gradient(135deg, hsl(${hue} 70% 92%) 0%, hsl(${(hue + 40) % 360} 70% 86%) 100%)`,
+            }}
+          >
+            <div className="absolute inset-0 opacity-[0.07] [background-image:radial-gradient(circle_at_1px_1px,_currentColor_1px,_transparent_0)] [background-size:14px_14px]" />
+            <div className="relative flex flex-col items-center gap-1 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/70 text-foreground/70 shadow-sm backdrop-blur">
+                <ImageOff className="h-5 w-5" />
+              </div>
+              <span className="px-2 text-[10px] font-semibold uppercase tracking-wider text-foreground/60">
+                Bild saknas
+              </span>
+            </div>
+          </div>
+        )}
+        {a && (
+          <CardDetailsDialog listing={listing} mode="deal">
+            <button
+              type="button"
+              aria-label={`Visa detaljer för Deal Score ${a.deal_score}`}
+              className="absolute right-2 top-2 rounded-full transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:right-3 sm:top-3"
+            >
               <DealScoreBadge score={a.deal_score} size="sm" />
-            </div>
-          )}
-          {a?.heat_label === "HOT" && (
-            <div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-rec-red/95 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md sm:left-3 sm:top-3">
-              <Zap className="h-3 w-3" /> Hot
-            </div>
-          )}
-        </div>
+            </button>
+          </CardDetailsDialog>
+        )}
+        {isHot && (
+          <div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-rec-red to-orange-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md ring-1 ring-white/30 sm:left-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-xs">
+            <Flame className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Hot
+          </div>
+        )}
+      </div>
 
-        <div className="min-w-0 flex-1">
+      <div className="mt-3 flex flex-1 flex-col">
           <h3 className="line-clamp-2 text-sm font-semibold leading-tight">{listing.title}</h3>
           <div className="mt-1 flex items-baseline gap-1.5 text-sm">
             <span className="font-bold text-foreground">{listing.current_price ?? "?"} kr</span>
@@ -78,12 +108,22 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <RecommendationPill recommendation={a.recommendation} />
               <HeatBadge label={heatLabel} trend={heatTrend} score={heatScore} />
-              <HierarchyBadge
-                brand={a.card_hierarchy_brand}
-                tier={a.card_hierarchy_tier}
-                parallel={a.card_hierarchy_parallel}
-                collectorPriority={a.collector_priority}
-              />
+              {a.card_hierarchy_brand && a.card_hierarchy_brand !== "UNKNOWN" && a.card_hierarchy_tier && a.card_hierarchy_tier !== "UNKNOWN" ? (
+                <CardDetailsDialog listing={listing} mode="hierarchy">
+                  <button
+                    type="button"
+                    aria-label="Visa card hierarchy detaljer"
+                    className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  >
+                    <HierarchyBadge
+                      brand={a.card_hierarchy_brand}
+                      tier={a.card_hierarchy_tier}
+                      parallel={a.card_hierarchy_parallel}
+                      collectorPriority={a.collector_priority}
+                    />
+                  </button>
+                </CardDetailsDialog>
+              ) : null}
               {a.urgency === "HIGH" && (
                 <span className="inline-flex items-center gap-0.5 rounded-full border border-rec-red/60 bg-rec-red/10 px-2 py-0.5 text-[10px] font-bold uppercase text-rec-red">
                   <Clock className="h-3 w-3" /> Slut snart
@@ -109,7 +149,6 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
               ))}
             </div>
           )}
-        </div>
       </div>
 
       {a && (

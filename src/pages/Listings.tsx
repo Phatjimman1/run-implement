@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useListings } from "@/hooks/useListings";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { X } from "lucide-react";
 
 type Sort = "deal" | "sniper" | "ending" | "price" | "newest" | "flip" | "hold" | "hierarchy" | "priority";
 
@@ -34,6 +35,35 @@ export default function Listings() {
   const [grailsOnly, setGrailsOnly] = useState(false);
   const [rookieHierarchyOnly, setRookieHierarchyOnly] = useState(false);
   const [sort, setSort] = useState<Sort>("deal");
+
+  type Chip = { key: string; label: string; clear: () => void };
+  const activeChips: Chip[] = [];
+  if (search) activeChips.push({ key: "search", label: `Sök: "${search}"`, clear: () => setSearch("") });
+  if (maxPrice) activeChips.push({ key: "maxPrice", label: `Max ${maxPrice} kr`, clear: () => setMaxPrice("") });
+  if (recFilter !== "all") activeChips.push({ key: "rec", label: recFilter.replace("_", " "), clear: () => setRecFilter("all") });
+  if (cardType !== "all") activeChips.push({ key: "type", label: cardType, clear: () => setCardType("all") });
+  if (brand !== "all") activeChips.push({ key: "brand", label: brand, clear: () => setBrand("all") });
+  if (hierarchyTier !== "all") activeChips.push({ key: "tier", label: `Tier ${hierarchyTier}`, clear: () => setHierarchyTier("all") });
+  if (collectorPriority !== "all") activeChips.push({ key: "prio", label: collectorPriority, clear: () => setCollectorPriority("all") });
+  if (endingSoon) activeChips.push({ key: "endingSoon", label: "Slutar snart", clear: () => setEndingSoon(false) });
+  if (autoOnly) activeChips.push({ key: "auto", label: "Auto only", clear: () => setAutoOnly(false) });
+  if (refractorOnly) activeChips.push({ key: "refractor", label: "Refractor only", clear: () => setRefractorOnly(false) });
+  if (hideInserts) activeChips.push({ key: "hideInserts", label: "Dölj inserts", clear: () => setHideInserts(false) });
+  if (hideRedFlags) activeChips.push({ key: "hideRedFlags", label: "Dölj red flags", clear: () => setHideRedFlags(false) });
+  if (swedishOnly) activeChips.push({ key: "swedish", label: "Swedish edge", clear: () => setSwedishOnly(false) });
+  if (blueChipOnly) activeChips.push({ key: "bluechip", label: "Blue chip", clear: () => setBlueChipOnly(false) });
+  if (prizmOnly) activeChips.push({ key: "prizm", label: "Prizm only", clear: () => setPrizmOnly(false) });
+  if (chromeOnly) activeChips.push({ key: "chrome", label: "Chrome only", clear: () => setChromeOnly(false) });
+  if (grailsOnly) activeChips.push({ key: "grails", label: "Grails", clear: () => setGrailsOnly(false) });
+  if (rookieHierarchyOnly) activeChips.push({ key: "rookieH", label: "Rookie hierarki", clear: () => setRookieHierarchyOnly(false) });
+
+  const resetAll = () => {
+    setSearch(""); setMaxPrice(""); setRecFilter("all"); setCardType("all"); setBrand("all");
+    setHierarchyTier("all"); setCollectorPriority("all");
+    setEndingSoon(false); setAutoOnly(false); setRefractorOnly(false);
+    setHideInserts(false); setHideRedFlags(true); setSwedishOnly(false); setBlueChipOnly(false);
+    setPrizmOnly(false); setChromeOnly(false); setGrailsOnly(false); setRookieHierarchyOnly(false);
+  };
 
   const brandOptions = useMemo(() => {
     const set = new Set<string>();
@@ -180,6 +210,24 @@ export default function Listings() {
             <Toggle on={grailsOnly} onClick={() => setGrailsOnly(v => !v)}>Grails</Toggle>
             <Toggle on={rookieHierarchyOnly} onClick={() => setRookieHierarchyOnly(v => !v)}>Rookie hierarki</Toggle>
           </div>
+          {activeChips.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Aktiva:</span>
+              {activeChips.map((c) => (
+                <button
+                  key={c.key}
+                  onClick={c.clear}
+                  className="group inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary transition-colors hover:bg-primary/20"
+                >
+                  {c.label}
+                  <X className="h-3 w-3 opacity-60 group-hover:opacity-100" />
+                </button>
+              ))}
+              <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px]" onClick={resetAll}>
+                Återställ alla
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 

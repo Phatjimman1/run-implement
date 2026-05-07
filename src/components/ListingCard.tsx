@@ -42,17 +42,27 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
   const heatTrend = playerHeat?.trend ?? null;
 
   return (
-    <article className="rounded-2xl border border-border bg-card p-3 shadow-sm">
-      <div className="flex gap-3">
-        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-muted sm:h-28 sm:w-28">
+    <article className="group rounded-2xl border border-border bg-card p-3 shadow-[var(--shadow-card)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-elevated)] hover:border-primary/30">
+      <div className="flex gap-3 sm:flex-col sm:gap-3">
+        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-56 sm:w-full">
           {listing.image_urls[0] ? (
-            <img src={listing.image_urls[0]} alt={listing.title} loading="lazy" className="h-full w-full object-cover" />
+            <img
+              src={listing.image_urls[0]}
+              alt={listing.title}
+              loading="lazy"
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">Ingen bild</div>
           )}
           {a && (
-            <div className="absolute -bottom-2 -right-2">
+            <div className="absolute right-2 top-2 sm:right-3 sm:top-3">
               <DealScoreBadge score={a.deal_score} size="sm" />
+            </div>
+          )}
+          {a?.heat_label === "HOT" && (
+            <div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-rec-red/95 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md sm:left-3 sm:top-3">
+              <Zap className="h-3 w-3" /> Hot
             </div>
           )}
         </div>

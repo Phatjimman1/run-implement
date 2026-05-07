@@ -122,8 +122,43 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
                 {a.collector_priority ? ` · ${a.collector_priority}` : ""}
                 {a.card_hierarchy_numbering ? ` · ${a.card_hierarchy_numbering}` : ""}
               </div>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {a.card_hierarchy_normalized_parallel && a.card_hierarchy_normalized_parallel !== a.card_hierarchy_parallel && (
+                  <span className="rounded-full border border-border bg-background px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                    norm: {a.card_hierarchy_normalized_parallel}
+                  </span>
+                )}
+                {typeof a.card_hierarchy_rank === "number" && (
+                  <span className="rounded-full border border-border bg-background px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                    rank {a.card_hierarchy_rank}
+                  </span>
+                )}
+                {typeof a.card_hierarchy_score_bonus === "number" && a.card_hierarchy_score_bonus !== 0 && (
+                  <span className={cn(
+                    "rounded-full border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                    a.card_hierarchy_score_bonus > 0
+                      ? "border-rec-bid/60 bg-rec-bid/10 text-rec-bid"
+                      : "border-rec-red/60 bg-rec-red/10 text-rec-red",
+                  )}>
+                    {a.card_hierarchy_score_bonus > 0 ? `+${a.card_hierarchy_score_bonus}` : a.card_hierarchy_score_bonus} score
+                  </span>
+                )}
+              </div>
               {a.card_hierarchy_reasoning && (
-                <div className="mt-0.5 text-muted-foreground">{a.card_hierarchy_reasoning}</div>
+                <div className="mt-1">
+                  <div className="font-semibold uppercase tracking-wide text-muted-foreground">Motivering</div>
+                  <div className="text-muted-foreground">{a.card_hierarchy_reasoning}</div>
+                </div>
+              )}
+              {Array.isArray(a.card_hierarchy_warnings_json) && a.card_hierarchy_warnings_json.length > 0 && (
+                <div className="mt-1">
+                  <div className="font-semibold uppercase tracking-wide text-rec-red">Varningar</div>
+                  <ul className="mt-0.5 list-disc space-y-0.5 pl-4 text-rec-red">
+                    {a.card_hierarchy_warnings_json.map((w: any, i: number) => (
+                      <li key={i}>{typeof w === "string" ? w : (w?.message ?? w?.code ?? JSON.stringify(w))}</li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </div>
           )}

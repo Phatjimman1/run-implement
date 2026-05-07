@@ -61,6 +61,7 @@ export type ListingWithAnalysis = {
     card_hierarchy_score_bonus: number | null;
     collector_priority: string | null;
     card_hierarchy_reasoning: string | null;
+    card_hierarchy_warnings_json: any[] | null;
   } | null;
 };
 

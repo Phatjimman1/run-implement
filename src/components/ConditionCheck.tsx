@@ -100,8 +100,12 @@ export function ConditionCheck({ listingId, imageUrl, title }: { listingId: stri
         <div className="overflow-y-auto px-4 pb-6">
           {imageUrl && (
             <div className="relative mx-auto mb-3 inline-block w-full">
-              <img src={imageUrl} alt={title} className="mx-auto block max-h-64 rounded-lg border border-border object-contain" />
-              {a && <CardOverlay centering={a.centering} />}
+              <img
+                src={a?.overlay_image_url || imageUrl}
+                alt={title}
+                className="mx-auto block max-h-64 rounded-lg border border-border object-contain"
+              />
+              {a && !a.overlay_image_url && <CardOverlay centering={a.centering} />}
             </div>
           )}
           {!a && (

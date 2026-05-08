@@ -299,7 +299,7 @@ function EducationContent({ a }: { a: NonNullable<ListingWithAnalysis["analyses"
     a.card_hierarchy_brand === "PANINI_PRIZM" ? "Panini Prizm" : a.card_hierarchy_brand === "TOPPS_CHROME" ? "Topps Chrome" : null,
     a.is_auto ? "Auto" : null,
     a.is_rookie ? "Rookie" : null,
-    a.is_numbered ? "Numbered" : null,
+    (a as any).is_numbered ? "Numbered" : null,
   ].filter(Boolean) as string[];
   const entries = getEducation(tags);
   if (entries.length === 0) return <p className="text-sm text-muted-foreground">Ingen kuraterad hobby-information matchar detta kort ännu.</p>;

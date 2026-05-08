@@ -62,6 +62,14 @@ export type ListingWithAnalysis = {
     collector_priority: string | null;
     card_hierarchy_reasoning: string | null;
     card_hierarchy_warnings_json: any[] | null;
+    score_breakdown_json: any | null;
+    recommendation_explanation_json: any | null;
+    market_anchor_explanation_json: any | null;
+    player_heat_explanation_json: any | null;
+    risk_analysis_json: any | null;
+    max_bid_breakdown_json: any | null;
+    hierarchy_explanation_json: any | null;
+    educational_notes_json: string[] | null;
   } | null;
 };
 

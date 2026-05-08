@@ -47,7 +47,7 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <TopBar />
-      <main className="flex-1 mx-auto w-full max-w-3xl py-4 space-y-6">
+      <main className="flex-1 mx-auto w-full max-w-7xl py-4 space-y-6">
         {isLoading ? (
           <div className="space-y-3 px-4">
             {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}

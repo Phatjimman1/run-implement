@@ -13,6 +13,7 @@ import {
 } from "./comps.ts";
 import { evaluateHardBlock } from "./blocking.ts";
 import { analyzeCardHierarchy } from "./hierarchy.ts";
+import { buildAllExplanations } from "./explanations.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -191,6 +192,23 @@ Deno.serve(async (req) => {
           else finalRecommendation = "RED_FLAG";
         }
 
+        const estimatedValue = comp.median > 0 ? comp.median : score.estimatedMarketValue;
+        const explanations = buildAllExplanations({
+          score,
+          finalDealScore: dealScoreWithHierarchy,
+          finalRecommendation,
+          comp,
+          market,
+          sniper,
+          heat,
+          hierarchy,
+          hierarchyBonus,
+          block,
+          totalCost,
+          shipping: item.shippingCost ?? 0,
+          estimatedValue,
+        });
+
         const { error: aErr } = await supabase
           .from("analyses")
           .upsert({
@@ -247,6 +265,14 @@ Deno.serve(async (req) => {
             collector_priority: hierarchy.collectorPriority,
             card_hierarchy_reasoning: hierarchy.reasoning,
             card_hierarchy_warnings_json: hierarchy.warnings,
+            score_breakdown_json: explanations.score_breakdown_json,
+            recommendation_explanation_json: explanations.recommendation_explanation_json,
+            market_anchor_explanation_json: explanations.market_anchor_explanation_json,
+            player_heat_explanation_json: explanations.player_heat_explanation_json,
+            risk_analysis_json: explanations.risk_analysis_json,
+            max_bid_breakdown_json: explanations.max_bid_breakdown_json,
+            hierarchy_explanation_json: explanations.hierarchy_explanation_json,
+            educational_notes_json: explanations.educational_notes_json,
             updated_at: new Date().toISOString(),
           }, { onConflict: "listing_id" });
         if (aErr) errors.push(`upsert analysis: ${aErr.message}`);

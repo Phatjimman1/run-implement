@@ -75,10 +75,12 @@ export type Database = {
           detected_players: string[]
           detected_sets: string[]
           discount_percent: number | null
+          educational_notes_json: Json
           estimated_market_value: number | null
           flip_score: number
           heat_label: string | null
           heat_score: number | null
+          hierarchy_explanation_json: Json
           hold_score: number
           id: string
           is_auto: boolean
@@ -93,12 +95,18 @@ export type Database = {
           is_rookie: boolean
           is_xfractor: boolean
           listing_id: string
+          market_anchor_explanation_json: Json
           max_bid: number
+          max_bid_breakdown_json: Json
           numbered_print_run: number | null
+          player_heat_explanation_json: Json
           price_per_card: number | null
           reasoning: string | null
           recommendation: string
+          recommendation_explanation_json: Json
+          risk_analysis_json: Json
           risk_score: number
+          score_breakdown_json: Json
           sniper_score: number
           tags: string[]
           updated_at: string
@@ -132,10 +140,12 @@ export type Database = {
           detected_players?: string[]
           detected_sets?: string[]
           discount_percent?: number | null
+          educational_notes_json?: Json
           estimated_market_value?: number | null
           flip_score?: number
           heat_label?: string | null
           heat_score?: number | null
+          hierarchy_explanation_json?: Json
           hold_score?: number
           id?: string
           is_auto?: boolean
@@ -150,12 +160,18 @@ export type Database = {
           is_rookie?: boolean
           is_xfractor?: boolean
           listing_id: string
+          market_anchor_explanation_json?: Json
           max_bid?: number
+          max_bid_breakdown_json?: Json
           numbered_print_run?: number | null
+          player_heat_explanation_json?: Json
           price_per_card?: number | null
           reasoning?: string | null
           recommendation?: string
+          recommendation_explanation_json?: Json
+          risk_analysis_json?: Json
           risk_score?: number
+          score_breakdown_json?: Json
           sniper_score?: number
           tags?: string[]
           updated_at?: string
@@ -189,10 +205,12 @@ export type Database = {
           detected_players?: string[]
           detected_sets?: string[]
           discount_percent?: number | null
+          educational_notes_json?: Json
           estimated_market_value?: number | null
           flip_score?: number
           heat_label?: string | null
           heat_score?: number | null
+          hierarchy_explanation_json?: Json
           hold_score?: number
           id?: string
           is_auto?: boolean
@@ -207,12 +225,18 @@ export type Database = {
           is_rookie?: boolean
           is_xfractor?: boolean
           listing_id?: string
+          market_anchor_explanation_json?: Json
           max_bid?: number
+          max_bid_breakdown_json?: Json
           numbered_print_run?: number | null
+          player_heat_explanation_json?: Json
           price_per_card?: number | null
           reasoning?: string | null
           recommendation?: string
+          recommendation_explanation_json?: Json
+          risk_analysis_json?: Json
           risk_score?: number
+          score_breakdown_json?: Json
           sniper_score?: number
           tags?: string[]
           updated_at?: string

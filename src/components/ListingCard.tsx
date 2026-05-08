@@ -1,33 +1,19 @@
-import { ExternalLink, Heart, Zap, Clock, Users, Info, Flame, ImageOff } from "lucide-react";
+import { ExternalLink, Heart, Zap, Clock, Users, Flame, ImageOff, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { DealScoreBadge } from "./DealScoreBadge";
 import { RecommendationPill } from "./RecommendationPill";
 import { HeatBadge } from "./HeatBadge";
 import { HierarchyBadge } from "./HierarchyBadge";
 import { ConditionCheck } from "./ConditionCheck";
-import { CardDetailsDialog } from "./CardDetailsDialog";
+import { IntelligenceDrawer } from "./intelligence/IntelligenceDrawer";
+import { InteractiveCardImage } from "./intelligence/InteractiveCardImage";
+import {
+  Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerTrigger,
+} from "@/components/ui/drawer";
 import { formatTimeLeft } from "@/lib/recommendation";
 import { ListingWithAnalysis, usePlayerHeatMap } from "@/hooks/useListings";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { cn } from "@/lib/utils";
-
-// Map a warning string/object to the heuristic that contributed to the assigned tier.
-function explainHeuristic(w: any, a: NonNullable<ListingWithAnalysis["analyses"]>): string {
-  const raw = (typeof w === "string" ? w : w?.message ?? w?.code ?? JSON.stringify(w)) as string;
-  const lower = raw.toLowerCase();
-  const parts: string[] = [];
-  if (lower.includes("rookie")) parts.push(`Rookie-uppgradering (Silver/Refractor → +bonus, prio HIGH).`);
-  if (lower.includes("auto")) parts.push(`Auto-heuristik: kräver certified auto för full tier.`);
-  if (lower.includes("number") || lower.includes("/")) parts.push(`Numbering-regel (${a.card_hierarchy_numbering ?? "okänd run"}) påverkar rank.`);
-  if (lower.includes("parallel") || lower.includes("prizm") || lower.includes("refractor") || lower.includes("xfractor")) {
-    parts.push(`Parallel-match: ${a.card_hierarchy_normalized_parallel ?? a.card_hierarchy_parallel ?? "okänd"} → Tier ${a.card_hierarchy_tier}.`);
-  }
-  if (lower.includes("brand") || lower.includes("unknown")) parts.push(`Brand-detektion osäker → tier kan vara underskattad.`);
-  if (lower.includes("reprint") || lower.includes("fake") || lower.includes("custom")) parts.push(`Block-/risk-heuristik kan nedgradera tiern.`);
-  if (parts.length === 0) parts.push(`Heuristik: ${a.card_hierarchy_brand ?? "?"} / ${a.card_hierarchy_normalized_parallel ?? a.card_hierarchy_parallel ?? "?"} → Tier ${a.card_hierarchy_tier} (+${a.card_hierarchy_score_bonus ?? 0}).`);
-  return parts.join(" ");
-}
 
 export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
   const a = listing.analyses;
@@ -54,12 +40,38 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
     <article className="group flex flex-col rounded-2xl border border-border bg-card p-3 shadow-[var(--shadow-card)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-elevated)] hover:border-primary/30">
       <div className="relative h-44 w-full overflow-hidden rounded-xl bg-muted sm:h-56">
         {coverImage ? (
-          <img
-            src={coverImage}
-            alt={listing.title}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-          />
+          <Drawer>
+            <DrawerTrigger asChild>
+              <button
+                type="button"
+                aria-label="Öppna interaktiv bildanalys"
+                className="block h-full w-full focus:outline-none"
+              >
+                <img
+                  src={coverImage}
+                  alt={listing.title}
+                  loading="lazy"
+                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                />
+              </button>
+            </DrawerTrigger>
+            <DrawerContent className="max-h-[90vh]">
+              <DrawerHeader>
+                <DrawerTitle className="line-clamp-2 text-base">{listing.title}</DrawerTitle>
+                <DrawerDescription>Interaktiv bildanalys — växla läge för olika overlays.</DrawerDescription>
+              </DrawerHeader>
+              <div className="overflow-y-auto px-4 pb-6">
+                <InteractiveCardImage
+                  listingId={listing.id}
+                  imageUrl={coverImage}
+                  title={listing.title}
+                  isAuto={a?.is_auto}
+                  isNumbered={(a as any)?.is_numbered}
+                  parallel={a?.card_hierarchy_parallel}
+                />
+              </div>
+            </DrawerContent>
+          </Drawer>
         ) : (
           <div
             aria-label="Ingen bild tillgänglig"
@@ -80,7 +92,7 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
           </div>
         )}
         {a && (
-          <CardDetailsDialog listing={listing} mode="deal">
+          <IntelligenceDrawer kind="score" listing={listing}>
             <button
               type="button"
               aria-label={`Visa detaljer för Deal Score ${a.deal_score}`}
@@ -88,12 +100,18 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
             >
               <DealScoreBadge score={a.deal_score} size="sm" />
             </button>
-          </CardDetailsDialog>
+          </IntelligenceDrawer>
         )}
         {isHot && (
-          <div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-rec-red to-orange-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md ring-1 ring-white/30 sm:left-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-xs">
-            <Flame className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Hot
-          </div>
+          <IntelligenceDrawer kind="heat" listing={listing}>
+            <button
+              type="button"
+              aria-label="Visa player heat-analys"
+              className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-rec-red to-orange-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md ring-1 ring-white/30 transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:left-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-xs"
+            >
+              <Flame className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Hot
+            </button>
+          </IntelligenceDrawer>
         )}
       </div>
 
@@ -102,14 +120,30 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
           <div className="mt-1 flex items-baseline gap-1.5 text-sm">
             <span className="font-bold text-foreground">{listing.current_price ?? "?"} kr</span>
             {listing.shipping_cost != null && <span className="text-xs text-muted-foreground">+ {listing.shipping_cost} frakt</span>}
-            {timeLeft && <span className="ml-auto text-xs text-muted-foreground">{timeLeft}</span>}
+            {timeLeft && a && (
+              <IntelligenceDrawer kind="urgency" listing={listing}>
+                <button type="button" aria-label="Sniper urgency" className="ml-auto text-xs text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-foreground">
+                  {timeLeft}
+                </button>
+              </IntelligenceDrawer>
+            )}
           </div>
           {a && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              <RecommendationPill recommendation={a.recommendation} />
-              <HeatBadge label={heatLabel} trend={heatTrend} score={heatScore} />
+              <IntelligenceDrawer kind="recommendation" listing={listing}>
+                <button type="button" aria-label="Visa rekommendations-analys" className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                  <RecommendationPill recommendation={a.recommendation} />
+                </button>
+              </IntelligenceDrawer>
+              {heatLabel && (
+                <IntelligenceDrawer kind="heat" listing={listing}>
+                  <button type="button" aria-label="Visa player heat-analys" className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                    <HeatBadge label={heatLabel} trend={heatTrend} score={heatScore} />
+                  </button>
+                </IntelligenceDrawer>
+              )}
               {a.card_hierarchy_brand && a.card_hierarchy_brand !== "UNKNOWN" && a.card_hierarchy_tier && a.card_hierarchy_tier !== "UNKNOWN" ? (
-                <CardDetailsDialog listing={listing} mode="hierarchy">
+                <IntelligenceDrawer kind="hierarchy" listing={listing}>
                   <button
                     type="button"
                     aria-label="Visa card hierarchy detaljer"
@@ -122,12 +156,14 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
                       collectorPriority={a.collector_priority}
                     />
                   </button>
-                </CardDetailsDialog>
+                </IntelligenceDrawer>
               ) : null}
               {a.urgency === "HIGH" && (
-                <span className="inline-flex items-center gap-0.5 rounded-full border border-rec-red/60 bg-rec-red/10 px-2 py-0.5 text-[10px] font-bold uppercase text-rec-red">
-                  <Clock className="h-3 w-3" /> Slut snart
-                </span>
+                <IntelligenceDrawer kind="urgency" listing={listing}>
+                  <button type="button" aria-label="Sniper urgency" className="inline-flex items-center gap-0.5 rounded-full border border-rec-red/60 bg-rec-red/10 px-2 py-0.5 text-[10px] font-bold uppercase text-rec-red focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                    <Clock className="h-3 w-3" /> Slut snart
+                  </button>
+                </IntelligenceDrawer>
               )}
               {a.competition === "LOW" && (
                 <span className="inline-flex items-center gap-0.5 rounded-full border border-rec-bid/60 bg-rec-bid/10 px-2 py-0.5 text-[10px] font-bold uppercase text-rec-bid">
@@ -135,9 +171,11 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
                 </span>
               )}
               {a.sniper_score >= 75 && (
-                <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-500 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-600">
-                  <Zap className="h-3 w-3" /> Sniper {a.sniper_score}
-                </span>
+                <IntelligenceDrawer kind="urgency" listing={listing}>
+                  <button type="button" aria-label="Sniper analys" className="inline-flex items-center gap-0.5 rounded-full border border-amber-500 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                    <Zap className="h-3 w-3" /> Sniper {a.sniper_score}
+                  </button>
+                </IntelligenceDrawer>
               )}
               {a.tags.slice(0, 4).map((t) => (
                 <span key={t} className={cn(
@@ -154,106 +192,58 @@ export function ListingCard({ listing }: { listing: ListingWithAnalysis }) {
       {a && (
         <>
           {a.comp_count >= 3 && a.comp_median ? (
-            <div className="mt-3 rounded-lg border border-border bg-muted/40 p-2 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Marknad ({a.comp_count} sålda)</span>
-                <span className="font-medium tabular-nums">{a.comp_low}–{a.comp_high} kr</span>
-              </div>
-              <div className="mt-0.5 flex items-center justify-between">
-                <span className="text-muted-foreground">Median</span>
-                <span className="font-bold tabular-nums">{a.comp_median} kr</span>
-              </div>
-              {a.discount_percent !== null && (
-                <div className="mt-0.5 flex items-center justify-between">
-                  <span className="text-muted-foreground">Rabatt</span>
-                  <span className={cn(
-                    "font-bold tabular-nums",
-                    a.discount_percent > 0 ? "text-rec-bid" : "text-rec-red"
-                  )}>
-                    {a.discount_percent > 0 ? `-${a.discount_percent}%` : `+${Math.abs(a.discount_percent)}%`}
-                  </span>
+            <IntelligenceDrawer kind="market" listing={listing}>
+              <button
+                type="button"
+                aria-label="Visa market anchor analys"
+                className="mt-3 w-full rounded-lg border border-border bg-muted/40 p-2 text-left text-xs transition-colors hover:border-primary/40"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Marknad ({a.comp_count} sålda)</span>
+                  <span className="font-medium tabular-nums">{a.comp_low}–{a.comp_high} kr</span>
                 </div>
-              )}
-            </div>
+                <div className="mt-0.5 flex items-center justify-between">
+                  <span className="text-muted-foreground">Median</span>
+                  <span className="font-bold tabular-nums">{a.comp_median} kr</span>
+                </div>
+                {a.discount_percent !== null && (
+                  <div className="mt-0.5 flex items-center justify-between">
+                    <span className="text-muted-foreground">Rabatt</span>
+                    <span className={cn("font-bold tabular-nums", a.discount_percent > 0 ? "text-rec-bid" : "text-rec-red")}>
+                      {a.discount_percent > 0 ? `-${a.discount_percent}%` : `+${Math.abs(a.discount_percent)}%`}
+                    </span>
+                  </div>
+                )}
+              </button>
+            </IntelligenceDrawer>
           ) : null}
           {a.reasoning && (
             <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{a.reasoning}</p>
           )}
-          {a.card_hierarchy_brand && a.card_hierarchy_brand !== "UNKNOWN" && a.card_hierarchy_tier && a.card_hierarchy_tier !== "UNKNOWN" && (
-            <div className="mt-2 rounded-lg border border-border bg-muted/30 p-2 text-[11px] leading-relaxed">
-              <div className="font-semibold uppercase tracking-wide text-muted-foreground">Card Hierarchy</div>
-              <div className="mt-0.5">
-                <span className="font-medium">{a.card_hierarchy_brand === "PANINI_PRIZM" ? "Panini Prizm" : "Topps Chrome"}</span>
-                {a.card_hierarchy_parallel ? ` · ${a.card_hierarchy_parallel}` : ""}
-                {" "}· Tier {a.card_hierarchy_tier}
-                {a.collector_priority ? ` · ${a.collector_priority}` : ""}
-                {a.card_hierarchy_numbering ? ` · ${a.card_hierarchy_numbering}` : ""}
-              </div>
-              <div className="mt-1 flex flex-wrap gap-1">
-                {a.card_hierarchy_normalized_parallel && a.card_hierarchy_normalized_parallel !== a.card_hierarchy_parallel && (
-                  <span className="rounded-full border border-border bg-background px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-                    norm: {a.card_hierarchy_normalized_parallel}
-                  </span>
-                )}
-                {typeof a.card_hierarchy_rank === "number" && (
-                  <span className="rounded-full border border-border bg-background px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-                    rank {a.card_hierarchy_rank}
-                  </span>
-                )}
-                {typeof a.card_hierarchy_score_bonus === "number" && a.card_hierarchy_score_bonus !== 0 && (
-                  <span className={cn(
-                    "rounded-full border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                    a.card_hierarchy_score_bonus > 0
-                      ? "border-rec-bid/60 bg-rec-bid/10 text-rec-bid"
-                      : "border-rec-red/60 bg-rec-red/10 text-rec-red",
-                  )}>
-                    {a.card_hierarchy_score_bonus > 0 ? `+${a.card_hierarchy_score_bonus}` : a.card_hierarchy_score_bonus} score
-                  </span>
-                )}
-              </div>
-              {a.card_hierarchy_reasoning && (
-                <div className="mt-1">
-                  <div className="font-semibold uppercase tracking-wide text-muted-foreground">Motivering</div>
-                  <div className="text-muted-foreground">{a.card_hierarchy_reasoning}</div>
-                </div>
-              )}
-              {Array.isArray(a.card_hierarchy_warnings_json) && a.card_hierarchy_warnings_json.length > 0 && (
-                <div className="mt-1">
-                  <div className="font-semibold uppercase tracking-wide text-rec-red">Varningar</div>
-                  <ul className="mt-0.5 space-y-0.5 pl-0">
-                    {a.card_hierarchy_warnings_json.map((w: any, i: number) => {
-                      const label = typeof w === "string" ? w : (w?.message ?? w?.code ?? JSON.stringify(w));
-                      return (
-                        <li key={i} className="flex items-start gap-1 text-rec-red">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button
-                                type="button"
-                                className="inline-flex items-center gap-1 text-left underline decoration-dotted underline-offset-2 hover:text-rec-red/80"
-                              >
-                                <Info className="mt-0.5 h-3 w-3 shrink-0" />
-                                <span>{label}</span>
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-xs text-xs leading-snug">
-                              <div className="font-semibold">Heuristik bakom tiern</div>
-                              <div className="mt-1 text-muted-foreground">{explainHeuristic(w, a)}</div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              )}
-            </div>
+          {a.risk_score >= 35 && (
+            <IntelligenceDrawer kind="risk" listing={listing}>
+              <button
+                type="button"
+                aria-label="Visa risk-analys"
+                className="mt-2 inline-flex items-center gap-1 self-start rounded-full border border-rec-red/40 bg-rec-red/5 px-2 py-0.5 text-[10px] font-bold uppercase text-rec-red focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                Risk {a.risk_score}
+              </button>
+            </IntelligenceDrawer>
           )}
           <div className="mt-3 flex items-center justify-between gap-2">
-            <div className="text-xs">
-              <div className="text-muted-foreground">Maxbud</div>
-              <div className="text-base font-bold tabular-nums">{a.max_bid} kr</div>
-            </div>
+            <IntelligenceDrawer kind="maxBid" listing={listing}>
+              <button type="button" aria-label="Max bid breakdown" className="text-left transition-colors hover:text-primary focus:outline-none">
+                <div className="text-xs text-muted-foreground">Maxbud</div>
+                <div className="text-base font-bold tabular-nums underline decoration-dotted underline-offset-2">{a.max_bid} kr</div>
+              </button>
+            </IntelligenceDrawer>
             <div className="flex gap-2">
+              <IntelligenceDrawer kind="education" listing={listing}>
+                <Button size="sm" variant="outline" aria-label="Collector education">
+                  <BookOpen className="h-4 w-4" />
+                </Button>
+              </IntelligenceDrawer>
               <ConditionCheck listingId={listing.id} imageUrl={listing.image_urls[0]} title={listing.title} />
               <Button
                 size="sm"
